@@ -1,4 +1,4 @@
-const cacheName = 'pokemon-install-v1';
+const cacheName = 'pokemon-install-v2';
 const offlinePage = '/offline.html';
 
 self.addEventListener('install', event => {

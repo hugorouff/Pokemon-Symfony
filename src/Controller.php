@@ -22,14 +22,18 @@ final class Controller
 
     #[Route('/', name: 'home', defaults: ['section' => 'accueil', '_public_auth' => true], methods: ['GET'])]
     #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte|objectifs|echanges|classeur'], methods: ['GET'])]
-    public function page(string $section, Request $request, RomAccess $access): Response
+    public function page(string $section, Request $request, RomAccess $access, RomAccounts $accounts): Response
     {
         $owner = $request->attributes->get('rom.owner') ?? $access->owner($request);
 
+        $signedIn = $owner !== null && $owner !== '';
+        $accountEmail = $signedIn && $section === 'compte' ? ($accounts->byId($owner)['email'] ?? null) : null;
+
         return new Response($this->twig->render('app.html.twig', [
             'section' => $section,
-            'signedIn' => $owner !== null && $owner !== '',
-        ]));
+            'signedIn' => $signedIn,
+            'accountEmail' => $accountEmail,
+        ]), 200, ['Cache-Control' => 'private, no-store']);
     }
 
     #[Route('/noir-2', methods: ['GET'])]
@@ -60,6 +64,12 @@ final class Controller
     public function register(Request $request, RomAccess $access): JsonResponse
     {
         return $access->register($request);
+    }
+
+    #[Route('/api/rom-access/recover/{action}', requirements: ['action' => 'request|confirm'], defaults: ['_public_auth' => true], methods: ['POST'])]
+    public function recover(Request $request, RomAccess $access, string $action): JsonResponse
+    {
+        return $access->recover($request, $action === 'confirm');
     }
 
     #[Route('/api/rom-access/logout', methods: ['POST'])]

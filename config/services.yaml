@@ -24,6 +24,8 @@ services:
             $directory: '%env(ROMS_DIRECTORY)%'
             $romLoginLimiter: '@limiter.rom_login'
             $accountRegistrationLimiter: '@limiter.account_registration'
+            $accountRecoveryLimiter: '@limiter.account_recovery'
+            $accountResetLimiter: '@limiter.account_reset'
 
     App\RomSaves:
         arguments:
@@ -49,6 +51,8 @@ services:
         tags: ['controller.service_arguments']
 
     App\RomAccounts: ~
+
+    App\AccountRecovery: ~
 
     App\AccountCollection: ~
 
@@ -79,6 +83,14 @@ framework:
             policy: sliding_window
             limit: 6
             interval: '10 minutes'
+        account_recovery:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
+        account_reset:
+            policy: sliding_window
+            limit: 10
+            interval: '15 minutes'
     http_client:
         default_options:
             timeout: 8

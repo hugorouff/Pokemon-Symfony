@@ -1,0 +1,44 @@
+<section class="home-hero" aria-labelledby="home-title">
+    <div class="home-copy">
+        <h1 id="home-title">Pokémon<br><em>TCG App</em></h1>
+        <p>Collectionne tes cartes, ouvre des boosters et retrouve tes parties Nintendo DS.</p>
+        <div class="actions">
+            {% if signedIn %}
+                <a class="primary" href="{{ path('section', {section: 'collection'}) }}">Ma collection</a>
+                <a class="secondary" href="{{ path('section', {section: 'emulateur'}) }}">Jouer sur DS <span class="jump-arrow" aria-hidden="true"></span></a>
+            {% else %}
+                <a class="primary" href="#account-login">Se connecter</a>
+                <a class="secondary" href="#account-register">Créer un compte</a>
+            {% endif %}
+        </div>
+    </div>
+    <ul class="home-lineup" aria-label="Pokémon favoris">
+        {% set favorites = {
+            'lucario': ['Lucario', 448, 'Combat / Acier'],
+            'rayquaza': ['Rayquaza', 384, 'Dragon / Vol'],
+            'reshiram': ['Reshiram', 643, 'Dragon / Feu']
+        } %}
+        {% for key, pokemon in favorites %}
+            <li class="lineup-{{ key }}">
+                <span class="lineup-number" aria-hidden="true">#{{ pokemon[1] }}</span>
+                <img src="/assets/favorites/{{ key }}.webp" alt="" fetchpriority="{{ key == 'rayquaza' ? 'high' : 'auto' }}">
+                <div class="lineup-caption"><strong>{{ pokemon[0] }}</strong><span>{{ pokemon[2] }}</span></div>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
+{% if signedIn %}
+    <nav class="home-shortcuts" aria-label="Raccourcis de l’accueil">
+        {% set shortcuts = {
+            'cartes': ['Catalogue de cartes', 'Trouver une carte par nom, série ou type'],
+            'boosters': ['Boosters', 'Ouvrir un booster et compléter ta collection'],
+            'pokedex': ['Pokédex sonore', 'Rechercher un Pokémon et écouter son cri']
+        } %}
+        {% for key, shortcut in shortcuts %}
+            <a href="{{ path('section', {section: key}) }}"><strong>{{ shortcut[0] }}</strong><span>{{ shortcut[1] }}</span><span class="shortcut-arrow" aria-hidden="true"></span></a>
+        {% endfor %}
+    </nav>
+{% else %}
+    {% include 'account.html.twig' %}
+{% endif %}
+<p class="art-credit">Illustrations via <a href="https://github.com/PokeAPI/sprites">PokéAPI</a></p>

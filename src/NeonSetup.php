@@ -69,6 +69,12 @@ final class NeonSetup
                 );
                 ALTER TABLE booster_openings ADD COLUMN IF NOT EXISTS owner_id varchar(32);
                 CREATE INDEX IF NOT EXISTS booster_openings_owner_date ON booster_openings (owner_id, type_filter, opened_at);
+                CREATE TABLE IF NOT EXISTS account_password_resets (
+                    owner_id varchar(32) PRIMARY KEY REFERENCES rom_accounts(id) ON DELETE CASCADE,
+                    token_hash varchar(64) NOT NULL,
+                    expires_at timestamptz NOT NULL,
+                    requested_at timestamptz NOT NULL DEFAULT now()
+                );
                 CREATE TABLE IF NOT EXISTS account_cards (
                     owner_id varchar(32) NOT NULL REFERENCES rom_accounts(id) ON DELETE CASCADE,
                     id varchar(103) NOT NULL,

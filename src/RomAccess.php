@@ -20,6 +20,9 @@ final class RomAccess
         private readonly RateLimiterFactoryInterface $romLoginLimiter,
         private readonly RomAccounts $accounts,
         private readonly RateLimiterFactoryInterface $accountRegistrationLimiter,
+        private readonly RateLimiterFactoryInterface $accountRecoveryLimiter,
+        private readonly RateLimiterFactoryInterface $accountResetLimiter,
+        private readonly AccountRecovery $recovery,
     ) {}
 
     public function state(Request $request): array
@@ -36,6 +39,7 @@ final class RomAccess
         return [
             'configured' => $this->accounts->enabled() || $this->passwordHash() !== '',
             'accounts' => $this->accounts->enabled(),
+            'recovery' => $this->recovery->enabled(),
             'accountId' => $owner ?: null,
             'authenticated' => $owner !== null,
             'token' => $token,
@@ -96,11 +100,8 @@ final class RomAccess
         if (strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->error('Saisissez une adresse mail valide.', 422);
         }
-        if (mb_strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0")) {
-            return $this->error('Utilisez un mot de passe d’au moins 12 caractères et de 72 octets maximum.', 422);
-        }
-        if ($password !== $request->request->getString('confirmation')) {
-            return $this->error('Les deux mots de passe doivent être identiques.', 422);
+        if ($error = $this->newPasswordError($password, $request->request->getString('confirmation'))) {
+            return $this->error($error, 422);
         }
         $account = $this->accounts->register($email, $password);
         $created = $account !== null;
@@ -115,6 +116,49 @@ final class RomAccess
         $this->authenticate($request, $account['id'], $account['password_hash']);
 
         return new JsonResponse($this->state($request), $created ? 201 : 200, ['Cache-Control' => 'private, no-store']);
+    }
+
+    public function recover(Request $request, bool $confirm): JsonResponse
+    {
+        if (!$this->recovery->enabled()) {
+            return $this->error('La récupération par e-mail est indisponible.', 503);
+        }
+        if (!$this->validToken($request)) {
+            return $this->error('La session a expiré. Rechargez la page.', 403);
+        }
+        $limiter = $confirm ? $this->accountResetLimiter : $this->accountRecoveryLimiter;
+        if (!$limiter->create($request->getClientIp() ?? 'local')->consume()->isAccepted()) {
+            return $this->error('Trop de tentatives. Réessaie dans quelques minutes.', 429);
+        }
+        $email = trim($request->request->getString('email'));
+        if (strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->error('Saisis une adresse mail valide.', 422);
+        }
+        if (!$confirm) {
+            $this->recovery->sendCode($email);
+
+            return new JsonResponse(['message' => 'Si cette adresse correspond à un compte, un code lui sera envoyé.'], 200);
+        }
+
+        $code = trim($request->request->getString('code'));
+        $password = $request->request->getString('password');
+        if ($error = $this->newPasswordError($password, $request->request->getString('confirmation'))) {
+            return $this->error($error, 422);
+        }
+        if (!preg_match('/^[a-f0-9]{32}$/iD', $code) || !$this->recovery->reset($email, $code, $password)) {
+            return $this->error('Code invalide ou expiré. Demande un nouveau code.', 422);
+        }
+
+        return new JsonResponse(['message' => 'Mot de passe mis à jour. Connecte-toi avec ton nouveau mot de passe.'], 200);
+    }
+
+    private function newPasswordError(string $password, string $confirmation): ?string
+    {
+        if (mb_strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0")) {
+            return 'Utilise un mot de passe d’au moins 12 caractères et de 72 octets maximum.';
+        }
+
+        return $password !== $confirmation ? 'Les deux mots de passe doivent être identiques.' : null;
     }
 
     private function authenticate(Request $request, string $id, string $hash): void

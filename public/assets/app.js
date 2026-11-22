@@ -337,8 +337,24 @@ async function showCollection() {
             return (query.sort === 'za' ? -1 : 1) * collator.compare(a.name, b.name);
         });
         cardsGrid(cards);
-        message(!all.length ? 'Votre collection est vide. Ouvrez un booster ou ajoutez une carte au catalogue.' :
-            `${fmt.format(cards.length)} carte(s) affichée(s) · ${fmt.format(all.reduce((sum, card) => sum + card.quantity, 0))} exemplaire(s) au total`);
+        const summary = {
+            unique: all.length,
+            total: all.reduce((sum, card) => sum + card.quantity, 0),
+            favorites: all.filter(card => card.favorite).length,
+            duplicates: all.filter(card => card.quantity > 1).length,
+        };
+        for (const [key, value] of Object.entries(summary)) {
+            document.querySelector('#collection-' + key).textContent = fmt.format(value);
+        }
+        document.querySelector('#collection-metrics').hidden = false;
+        if (!all.length) {
+            message('Ta collection est vide. Ouvre un booster ou ajoute une carte depuis le catalogue.');
+        } else if (!cards.length) {
+            message('Aucune carte ne correspond à ces filtres.');
+        } else {
+            const count = fmt.format(cards.length);
+            message(cards.length === 1 ? count + ' carte affichée' : count + ' cartes affichées');
+        }
     } catch (error) {
         message(error.message || 'Impossible de lire la collection enregistrée dans ce navigateur.', true);
     }

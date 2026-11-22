@@ -1,17 +1,28 @@
-<header class="page-title">
-    <h1>{{ signedIn ? 'Mon compte' : 'Connexion' }}</h1>
-    <p>{{ signedIn ? 'Retrouve ta collection et tes sauvegardes DS sur tes appareils.' : 'Connecte-toi ou crée un compte pour ouvrir l’application.' }}</p>
+{% if section == 'compte' %}
+<header class="page-title dashboard-title">
+    <div>
+        <h1>{{ signedIn ? 'Mon compte' : 'Connexion' }}</h1>
+        <p>{{ signedIn ? 'Retrouve ta collection et tes sauvegardes DS sur tes appareils.' : 'Connecte-toi ou crée un compte pour ouvrir l’application.' }}</p>
+    </div>
 </header>
+{% endif %}
 <p id="account-status" class="status error" role="status"></p>
-<div class="account-forms">
-    <section id="account-summary" class="panel account-panel" hidden>
-        <h2>Compte connecté</h2>
-        <div class="actions">
-            <a class="primary" href="/collection">Ma collection</a>
-            <a class="secondary" href="/emulateur">Mes ROMs</a>
+{% if signedIn %}
+    <section id="account-summary" class="panel profile-panel" hidden>
+        <div class="profile-heading">
+            <div>
+                <h2>Compte connecté</h2>
+                {% if accountEmail %}<p class="profile-email">{{ accountEmail }}</p>{% endif %}
+            </div>
+            <form id="account-logout"><button type="submit" class="secondary">Se déconnecter</button></form>
         </div>
-        <form id="account-logout"><button type="submit" class="secondary">Se déconnecter</button></form>
+        <div class="profile-links">
+            <a href="{{ path('section', {section: 'collection'}) }}"><strong>Ma collection</strong><span>Cartes, favoris et doubles</span><span class="shortcut-arrow" aria-hidden="true"></span></a>
+            <a href="{{ path('section', {section: 'emulateur'}) }}"><strong>Mes ROMs</strong><span>Jeux et sauvegardes Nintendo DS</span><span class="shortcut-arrow" aria-hidden="true"></span></a>
+        </div>
     </section>
+{% else %}
+<div class="account-forms auth-forms">
     <form id="account-login" class="panel account-panel" hidden>
         <h2>Se connecter</h2>
         <label for="login-email">Adresse mail</label>
@@ -19,6 +30,7 @@
         <label for="login-password">Mot de passe</label>
         <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
         <button type="submit" class="primary">Se connecter</button>
+        <button id="account-recover" type="button" class="secondary" hidden>Mot de passe oublié ?</button>
     </form>
     <form id="account-register" class="panel account-panel" hidden>
         <h2>Créer un compte</h2>
@@ -31,3 +43,20 @@
         <button type="submit" class="primary">Créer mon compte</button>
     </form>
 </div>
+
+<dialog id="account-recovery-dialog" aria-labelledby="recovery-title">
+    <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
+    <h2 id="recovery-title">Réinitialiser le mot de passe</h2>
+    <p id="recovery-status" class="status" role="status"></p>
+    <form id="recovery-request" class="account-panel">
+        <label>Adresse mail<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+        <button class="primary" type="submit">Envoyer mon code</button>
+    </form>
+    <form id="recovery-confirm" class="account-panel" hidden>
+        <label>Code reçu par e-mail<input name="code" type="text" autocomplete="one-time-code" pattern="[A-Fa-f0-9]{32}" maxlength="32" required></label>
+        <label>Nouveau mot de passe<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label>
+        <label>Confirmer le mot de passe<input name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label>
+        <button class="primary" type="submit">Changer mon mot de passe</button>
+    </form>
+</dialog>
+{% endif %}

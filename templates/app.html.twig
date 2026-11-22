@@ -10,22 +10,22 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#4CAF50">
+    <meta name="theme-color" content="#101118">
     <title>{{ nav[section] }} · Pokémon TCG App</title>
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/icons/app-192.png" sizes="192x192">
-    <link rel="apple-touch-icon" href="/icons/app-180.png">
+    <link rel="manifest" href="/manifest.webmanifest?v=dashboard">
+    <link rel="icon" href="/icons/app-192.png?v=dashboard" sizes="192x192">
+    <link rel="apple-touch-icon" href="/icons/app-180.png?v=dashboard">
     <script type="module" src="/assets/shell.js"></script>
-    <link rel="stylesheet" href="/assets/app.css">
+    <link rel="stylesheet" href="/assets/app.css?v=dashboard">
     {% if section == 'emulateur' %}
-        <link rel="stylesheet" href="/assets/nds-player.css">
+        <link rel="stylesheet" href="/assets/nds-player.css?v=dashboard">
         <script type="module" src="/assets/nds-player.js"></script>
     {% elseif section in ['objectifs', 'echanges', 'classeur'] %}
         <script type="module" src="/assets/feature-pages.js"></script>
-    {% elseif section == 'compte' or section == 'accueil' %}
-        <script type="module" src="/assets/account.js"></script>
-    {% else %}
-        <script type="module" src="/assets/app.js"></script>
+    {% elseif section == 'compte' or (section == 'accueil' and not signedIn) %}
+        <script type="module" src="/assets/account.js?v=dashboard"></script>
+    {% elseif section != 'accueil' %}
+        <script type="module" src="/assets/app.js?v=dashboard"></script>
     {% endif %}
 </head>
 <body data-section="{{ section }}">
@@ -33,7 +33,7 @@
 <header class="site-head">
     <div class="shell head-inner">
         {% if signedIn %}
-            <a class="brand" href="{{ path('home') }}">Pokémon TCG App</a>
+            <a class="brand" href="{{ path('home') }}"{% if section == 'accueil' %} aria-current="page"{% endif %}><img src="/icons/app-192.png?v=dashboard" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></a>
             <nav aria-label="Navigation principale">
                 <ul class="menu">
                     {% for group, keys in navGroups %}
@@ -53,7 +53,7 @@
                 </ul>
             </nav>
         {% else %}
-            <span class="brand">Pokémon TCG App</span>
+            <span class="brand"><img src="/icons/app-192.png?v=dashboard" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></span>
         {% endif %}
         <button id="install-app" class="install-app" type="button" hidden>Installer l’appli</button>
     </div>
@@ -63,7 +63,7 @@
 {% endif %}
 <main class="shell" id="contenu">
 {% if section == 'accueil' %}
-    {% include 'account.html.twig' %}
+    {% include 'home.html.twig' %}
 {% elseif section == 'cartes' %}
     <section id="header-search" class="tcg-heading">
         <h1>Pokémon TCG Explorer</h1>
@@ -101,23 +101,38 @@
     <p id="status" class="status" role="status" tabindex="-1"></p>
     <div id="results" class="card-grid"></div>
 {% elseif section == 'collection' %}
+    <header class="page-title dashboard-title">
+        <div><h1>Ma collection</h1><p>Retrouve tes cartes, tes favoris et tes doubles.</p></div>
+        <a class="primary" href="{{ path('section', {section: 'boosters'}) }}">Ouvrir un booster <span class="jump-arrow" aria-hidden="true"></span></a>
+    </header>
+    <dl class="collection-metrics" id="collection-metrics" hidden>
+        <div><dt>Cartes différentes</dt><dd id="collection-unique"></dd></div>
+        <div><dt>Exemplaires</dt><dd id="collection-total"></dd></div>
+        <div><dt>Favoris</dt><dd id="collection-favorites"></dd></div>
+        <div><dt>Cartes en double</dt><dd id="collection-duplicates"></dd></div>
+    </dl>
     <p id="collection-guest" hidden><a href="/compte">Connecte-toi ou crée ton compte</a> pour retrouver tes cartes sur tes autres appareils.</p>
-    <button id="import-local-collection" type="button" class="secondary" hidden>Importer mes cartes de ce navigateur</button>
-    <section id="header-search" class="tcg-heading">
-        <h1>Pokémon TCG Collection</h1>
-        <form class="filters" id="filters">
-            <label class="wide">Rechercher<input name="q" type="search" placeholder="Nom ou identifiant"></label>
-            <label>Afficher<select name="view"><option value="all">Toutes les cartes</option><option value="favorites">Favoris</option><option value="duplicates">Doubles</option></select></label>
-            <label>Type<select name="type"><option value="">Tous les types connus</option></select></label>
-            <label>Rareté<select name="rarity"><option value="">Toutes les raretés connues</option></select></label>
-            <label>Tri<select name="sort"><option value="az">Nom A–Z</option><option value="za">Nom Z–A</option><option value="quantity">Quantité</option><option value="rarity">Rareté</option><option value="type">Type</option></select></label>
-            <button class="primary">Filtrer</button>
-        </form>
-    </section>
-    <section class="cards-section">
-        <h2>Cartes Pokémon</h2>
-        <div class="actions transfer"><button class="secondary" id="export">Exporter en JSON</button><label class="secondary upload">Importer un JSON<input id="import" type="file" accept="application/json,.json"></label></div>
-        <p id="status" class="status" role="status"></p>
+    <form class="panel filters collection-filters" id="filters" aria-label="Filtrer ma collection">
+        <label>Rechercher<input name="q" type="search" placeholder="Nom ou identifiant"></label>
+        <label>Afficher<select name="view"><option value="all">Toutes les cartes</option><option value="favorites">Favoris</option><option value="duplicates">Doubles</option></select></label>
+        <label>Type<select name="type"><option value="">Tous les types</option></select></label>
+        <label>Rareté<select name="rarity"><option value="">Toutes les raretés</option></select></label>
+        <label>Tri<select name="sort"><option value="az">Nom A–Z</option><option value="za">Nom Z–A</option><option value="quantity">Quantité</option><option value="rarity">Rareté</option><option value="type">Type</option></select></label>
+        <button class="primary" type="submit">Filtrer</button>
+    </form>
+    <section class="collection-results" aria-labelledby="collection-list-title">
+        <div class="collection-toolbar">
+            <h2 id="collection-list-title">Mes cartes</h2>
+            <details class="transfer panel">
+                <summary>Importer ou exporter</summary>
+                <div class="actions">
+                    <button class="secondary" type="button" id="export">Exporter en JSON</button>
+                    <label class="secondary upload">Importer un JSON<input id="import" type="file" accept="application/json,.json"></label>
+                    <button id="import-local-collection" type="button" class="secondary" hidden>Importer mes cartes de ce navigateur</button>
+                </div>
+            </details>
+        </div>
+        <p id="status" class="status" role="status">Chargement de ta collection…</p>
         <div id="results" class="card-grid"></div>
     </section>
 {% elseif section == 'albums' %}

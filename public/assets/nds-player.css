@@ -1,8 +1,8 @@
 .nds-selection,.nds-player-top{padding:16px}
 .nds-selection form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
 .nds-selection label{grid-column:1/-1;font-weight:bold}
-.nds-selection input{width:100%;min-height:43px;padding:6px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink)}
-.nds-selection input::file-selector-button{font:inherit;background:#f1f1f1;color:var(--ink);border:0;border-radius:4px;padding:5px 9px;margin-right:10px;cursor:pointer}
+.nds-selection input{width:100%;min-height:43px;padding:6px;border:1px solid var(--line);border-radius:5px;background:var(--field);color:var(--ink)}
+.nds-selection input::file-selector-button{font:inherit;background:var(--paper);color:var(--ink);border:0;border-radius:4px;padding:5px 9px;margin-right:10px;cursor:pointer}
 .nds-hint{font-size:.92rem;margin-top:10px}
 .nds-player-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 #current-game{overflow-wrap:anywhere}
@@ -26,5 +26,5 @@
 @media(max-width:650px){.rom-row{align-items:flex-start;flex-direction:column}.rom-actions{justify-content:flex-start}}
 
 .rom-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.rom-tabs [aria-selected="true"]{background:var(--ink);color:#fff}
+.rom-tabs [aria-selected="true"]{background:var(--red);color:#17090b}
 .rom-tabs button{max-width:100%;overflow-wrap:anywhere}

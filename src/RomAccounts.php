@@ -47,7 +47,7 @@ final class RomAccounts
 
     private function find(string $column, string $value): ?array
     {
-        $query = $this->database->connection()->prepare('SELECT id, password_hash FROM rom_accounts WHERE '.$column.' = ?');
+        $query = $this->database->connection()->prepare('SELECT id, email, password_hash FROM rom_accounts WHERE '.$column.' = ?');
         $query->execute([$value]);
 
         return $query->fetch(\PDO::FETCH_ASSOC) ?: null;

@@ -40,9 +40,14 @@ Dans **Decks**, créez et renommez plusieurs listes de 60 cartes maximum à part
 
 ## Installer l’application
 
-Depuis le site HTTPS, utilisez **Installer l’appli**. Chrome et Edge peuvent afficher une confirmation native. Sur iPhone ou iPad, utilisez **Partager → Sur l’écran d’accueil** dans Safari. Le mode installé utilise le même compte que le site.
+Depuis le site HTTPS, utilisez **Installer l’appli**. Chrome et Edge peuvent afficher une confirmation native. Sur iPhone ou iPad, utilisez **Partager → Sur l’écran d’accueil** dans Safari. Le mode installé s’ouvre dans sa propre fenêtre et utilise le même compte que le site. Sur les systèmes compatibles, l’icône de l’application propose aussi des raccourcis vers **Ma collection** et **Jeux Nintendo DS**.
 
-Si une adresse est déjà utilisée, connectez-vous avec le mot de passe existant. Pour réinitialiser votre propre compte en tant qu’administrateur, utilisez la même base Neon et lancez `php bin/console app:roms:account --rotate votre-adresse@example.com`. Le compte conserve son identifiant et ses données.
+Les nouvelles adresses s’inscrivent directement depuis **Créer un compte**. Pour récupérer une adresse déjà utilisée, activez **Mot de passe oublié ?** en ajoutant dans l’environnement Render :
+
+- `RESEND_API_KEY` avec une clé d’envoi Resend.
+- `PASSWORD_RESET_FROM` avec une adresse de votre domaine d’envoi vérifié dans Resend.
+
+Initialisez la table via `php bin/console app:neon:setup` contre la même base Neon, puis redéployez. L’API HTTPS Resend envoie un code utilisable une seule fois pendant 15 minutes. La récupération conserve le compte et ses données. Si l’envoi mail n’est pas configuré, un administrateur peut renouveler le mot de passe d’un compte existant avec `php bin/console app:roms:account --rotate adresse@example.com`.
 
 ## Fonctions du compte
 
@@ -112,7 +117,7 @@ Pour un essai local, conservez les variables produites par Neon dans `.env.local
 | `ROM_S3_BUCKET` | `roms-ds` |
 | `AWS_ENDPOINT_URL_S3`, `AWS_REGION` | Endpoint S3 Neon de la branche et région renvoyée par Neon. |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Clés de stockage Neon pour la branche `production`. |
-| `ROM_USER_ACCOUNTS` | `1` pour permettre l’inscription depuis **Mon compte** et enregistrer les collections et sauvegardes par compte. |
+| `ROM_USER_ACCOUNTS` | `1` pour permettre l’inscription depuis **Créer un compte** à l’accueil et enregistrer les collections et sauvegardes par compte. |
 | `APP_SECRET` | Valeur secrète stable et propre à l’application, à définir sur l’hébergement. |
 
 Les variables historiques `ROM_S3_ENDPOINT`, `ROM_S3_REGION`, `ROM_S3_ACCESS_KEY` et `ROM_S3_SECRET_KEY` fonctionnent encore si elles sont déjà configurées et sont prioritaires sur leurs équivalents `AWS_*`.
@@ -132,7 +137,7 @@ Chaque ouverture enregistre les cinq cartes obtenues dans `booster_openings` lor
 
 ### Image Docker
 
-Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Avant de déployer cette mise à jour, lancez `php bin/console app:neon:setup` avec la même URL PostgreSQL pour ajouter les tables de collection et des nouvelles fonctionnalités, ainsi que les champs des points de reprise. Les joueurs peuvent ensuite s’inscrire depuis **Mon compte**. Les comptes existants gardent leurs identifiants. L’image écoute sur le port 80.
+Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Avant de déployer cette mise à jour, lancez `php bin/console app:neon:setup` avec la même URL PostgreSQL pour ajouter les tables de collection et des nouvelles fonctionnalités, ainsi que les champs des points de reprise. Les joueurs peuvent ensuite s’inscrire depuis **Créer un compte** à l’accueil. Les comptes existants gardent leurs identifiants. L’image écoute sur le port 80.
 
 ## Vérification du catalogue
 
