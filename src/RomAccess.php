@@ -17,6 +17,7 @@ final class RomAccess
         private readonly string $directory,
         private readonly RateLimiterFactoryInterface $romLoginLimiter,
         private readonly RomAccounts $accounts,
+        private readonly RateLimiterFactoryInterface $accountRegistrationLimiter,
     ) {}
 
     public function state(Request $request): array
@@ -71,13 +72,50 @@ final class RomAccess
             return $this->error('Identifiants incorrects.', 401);
         }
         $limiter->reset();
+        $this->authenticate($request, $account['id'] ?? '', $hash);
+
+        return new JsonResponse($this->state($request), 200, ['Cache-Control' => 'private, no-store']);
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        if (!$this->accounts->enabled()) {
+            return $this->error('La création de comptes est désactivée.', 503);
+        }
+        if (!$this->validToken($request)) {
+            return $this->error('La session a expiré. Rechargez la page.', 403);
+        }
+        if (!$this->accountRegistrationLimiter->create($request->getClientIp() ?? 'local')->consume()->isAccepted()) {
+            return $this->error('Trop de tentatives. Réessayez dans quelques minutes.', 429);
+        }
+
+        $email = trim($request->request->getString('email'));
+        $password = $request->request->getString('password');
+        if (strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->error('Saisissez une adresse mail valide.', 422);
+        }
+        if (mb_strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0")) {
+            return $this->error('Utilisez un mot de passe d’au moins 12 caractères et de 72 octets maximum.', 422);
+        }
+        if ($password !== $request->request->getString('confirmation')) {
+            return $this->error('Les deux mots de passe doivent être identiques.', 422);
+        }
+        $account = $this->accounts->register($email, $password);
+        if ($account === null) {
+            return $this->error('Impossible de créer le compte avec cette adresse. Si tu as déjà un compte, connecte-toi.', 409);
+        }
+        $this->authenticate($request, $account['id'], $account['password_hash']);
+
+        return new JsonResponse($this->state($request), 201, ['Cache-Control' => 'private, no-store']);
+    }
+
+    private function authenticate(Request $request, string $id, string $hash): void
+    {
         $session = $request->getSession();
         $session->migrate(true);
         $session->set('rom.auth', hash('sha256', $hash));
-        $session->set('rom.account_id', $account['id'] ?? '');
+        $session->set('rom.account_id', $id);
         $session->remove('rom.csrf');
-
-        return new JsonResponse($this->state($request), 200, ['Cache-Control' => 'private, no-store']);
     }
 
     public function logout(Request $request): JsonResponse
@@ -94,12 +132,12 @@ final class RomAccess
     public function guard(ControllerEvent $event): void
     {
         $request = $event->getRequest();
-        if (!$request->attributes->get('_private_rom_library')) {
+        if (!$request->attributes->get('_private_rom_library') && !$request->attributes->get('_private_account')) {
             return;
         }
         $owner = $this->owner($request);
-        if ($owner === null) {
-            $event->setController(fn () => $this->error('Connectez-vous pour accéder à votre bibliothèque privée.', 401));
+        if ($owner === null || ($owner === '' && $request->attributes->get('_private_account'))) {
+            $event->setController(fn () => $this->error('Connectez-vous pour accéder à vos données personnelles.', 401));
 
             return;
         }
@@ -158,7 +196,7 @@ final class RomAccess
         return password_get_info($hash)['algo'] ? $hash : '';
     }
 
-    private function owner(Request $request): ?string
+    public function owner(Request $request): ?string
     {
         $session = $request->getSession();
         $proof = $session->get('rom.auth');
@@ -181,7 +219,7 @@ final class RomAccess
         return $hash !== '' && hash_equals(hash('sha256', $hash), $proof) ? $id : null;
     }
 
-    private function validToken(Request $request): bool
+    public function validToken(Request $request): bool
     {
         $token = $request->getSession()->get('rom.csrf');
 

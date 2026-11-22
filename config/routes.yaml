@@ -5,3 +5,7 @@ app:
 roms:
     resource: ../src/RomController.php
     type: attribute
+
+collection:
+    resource: ../src/CollectionController.php
+    type: attribute

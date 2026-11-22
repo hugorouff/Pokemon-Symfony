@@ -1,4 +1,4 @@
-{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs'} %}
+{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte'} %}
 {% set headings = {'cartes': 'Recherche Cartes Pokémon', 'boosters': 'Ouvrir un Booster Pack Pokémon', 'collection': 'Collection Cartes Pokémon'} %}
 {% set packs = {
     'feu': ['Feu', 'feu'], 'eau': ['Eau', 'eau'], 'plante': ['Plante', 'plante'],
@@ -16,6 +16,8 @@
     {% if section == 'emulateur' %}
         <link rel="stylesheet" href="/assets/nds-player.css">
         <script type="module" src="/assets/nds-player.js"></script>
+    {% elseif section == 'compte' %}
+        <script type="module" src="/assets/account.js"></script>
     {% else %}
         <script type="module" src="/assets/app.js"></script>
     {% endif %}
@@ -83,6 +85,8 @@
     <p id="status" class="status" role="status" tabindex="-1"></p>
     <div id="results" class="card-grid"></div>
 {% elseif section == 'collection' %}
+    <p id="collection-guest" hidden><a href="/compte">Connecte-toi ou crée ton compte</a> pour retrouver tes cartes sur tes autres appareils.</p>
+    <button id="import-local-collection" type="button" class="secondary" hidden>Importer mes cartes de ce navigateur</button>
     <section id="header-search" class="tcg-heading">
         <h1>Pokémon TCG Collection</h1>
         <form class="filters" id="filters">
@@ -151,6 +155,8 @@
     <p id="status" class="status" role="status"></p>
     <div id="results" class="dex-grid"></div>
     <nav id="pager" class="pager" aria-label="Pages du Pokédex"></nav>
+{% elseif section == 'compte' %}
+    {% include 'account.html.twig' %}
 {% elseif section == 'emulateur' %}
     {% include 'nds-player.html.twig' %}
 {% endif %}

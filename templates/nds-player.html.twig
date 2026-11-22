@@ -2,20 +2,10 @@
     <h1>Mes ROMs</h1>
     <p>Retrouvez vos ROMs et leurs sauvegardes.</p>
 </header>
-<section id="rom-access" class="panel nds-selection" aria-label="Accès privé">
-    <form id="rom-login" hidden>
-        <label id="rom-email-label" for="rom-email" hidden>Adresse mail</label>
-        <input id="rom-email" name="email" type="email" autocomplete="username" hidden disabled>
-        <label for="rom-password">Mot de passe de la bibliothèque</label>
-        <input id="rom-password" name="password" type="password" autocomplete="current-password" required>
-        <button class="primary" type="submit">Se connecter</button>
-    </form>
-    <p id="rom-setup" hidden>Pour créer le mot de passe, démarrez avec <code>LANCER.bat</code> ou lancez <code>php bin/console app:roms:password</code> sur le serveur.</p>
-</section>
-<section id="selection" aria-label="Bibliothèque de jeux" hidden>
-    <div id="rom-toolbar" class="panel nds-player-top rom-toolbar" hidden>
+<section id="selection" aria-label="Bibliothèque de jeux">
+    <div class="panel nds-player-top rom-toolbar">
         <p id="rom-totals"></p>
-        <button class="secondary" id="rom-logout" type="button">Se déconnecter</button>
+        <a class="secondary" href="/compte">Mon compte</a>
     </div>
     <div id="rom-filters" class="filters rom-filters" hidden>
         <label>Moteur Nintendo DS<select id="ds-core"><option value="desmume">DeSmuME</option><option value="desmume2015">DeSmuME 2015</option></select></label>
@@ -38,6 +28,7 @@
 <dialog id="rom-saves">
     <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
     <h2 id="save-title">Sauvegardes</h2>
+    <p id="save-account" hidden>Pour accéder à tes sauvegardes en ligne, <a href="/compte" target="_blank" rel="noopener">connecte-toi ou crée ton compte</a>. Reviens ensuite dans Mes ROMs.</p>
     <form id="save-import" class="nds-selection">
         <label for="save-file">Fichier de sauvegarde</label>
         <input id="save-file" name="save" type="file" required>

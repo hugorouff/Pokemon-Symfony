@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/api/roms', defaults: ['_private_rom_library' => true])]
+#[Route('/api/roms')]
 final class RomController
 {
     private const HEADERS = ['Cache-Control' => 'private, no-store'];
@@ -75,7 +75,7 @@ final class RomController
         });
     }
 
-    #[Route('/{id}/sauvegardes', requirements: ['id' => '[a-f0-9]{64}'], methods: ['GET'])]
+    #[Route('/{id}/sauvegardes', requirements: ['id' => '[a-f0-9]{64}'], defaults: ['_private_rom_library' => true], methods: ['GET'])]
     public function saves(string $id, Request $request): Response
     {
         return $this->respond(function () use ($id, $request) {
@@ -87,7 +87,7 @@ final class RomController
         });
     }
 
-    #[Route('/{id}/sauvegardes', requirements: ['id' => '[a-f0-9]{64}'], methods: ['POST'])]
+    #[Route('/{id}/sauvegardes', requirements: ['id' => '[a-f0-9]{64}'], defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function save(string $id, Request $request): Response
     {
         return $this->respond(function () use ($id, $request) {
@@ -102,7 +102,7 @@ final class RomController
         });
     }
 
-    #[Route('/{id}/sauvegardes/{save}', requirements: ['id' => '[a-f0-9]{64}', 'save' => '[a-f0-9]{32}'], methods: ['GET'])]
+    #[Route('/{id}/sauvegardes/{save}', requirements: ['id' => '[a-f0-9]{64}', 'save' => '[a-f0-9]{32}'], defaults: ['_private_rom_library' => true], methods: ['GET'])]
     public function downloadSave(string $id, string $save, Request $request): Response
     {
         return $this->respond(function () use ($id, $save, $request) {
@@ -128,7 +128,7 @@ final class RomController
         });
     }
 
-    #[Route('/transferts', methods: ['POST'])]
+    #[Route('/transferts', defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function beginUpload(Request $request): Response
     {
         return $this->respond(function () use ($request) {
@@ -142,19 +142,19 @@ final class RomController
         });
     }
 
-    #[Route('/transferts/{token}/morceaux/{part}', requirements: ['token' => '[a-f0-9]{32}', 'part' => '\d{1,4}'], methods: ['POST'])]
+    #[Route('/transferts/{token}/morceaux/{part}', requirements: ['token' => '[a-f0-9]{32}', 'part' => '\d{1,4}'], defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function signPart(string $token, int $part, Request $request): Response
     {
         return $this->respond(fn () => new JsonResponse(['url' => $this->cloud->part($request->getSession(), $token, $part)], 200, self::HEADERS));
     }
 
-    #[Route('/transferts/{token}/terminer', requirements: ['token' => '[a-f0-9]{32}'], methods: ['POST'])]
+    #[Route('/transferts/{token}/terminer', requirements: ['token' => '[a-f0-9]{32}'], defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function finishUpload(string $token, Request $request): Response
     {
         return $this->respond(fn () => new JsonResponse($this->cloud->finish($request->getSession(), $token), 201, self::HEADERS));
     }
 
-    #[Route('/transferts/{token}/annuler', requirements: ['token' => '[a-f0-9]{32}'], methods: ['POST'])]
+    #[Route('/transferts/{token}/annuler', requirements: ['token' => '[a-f0-9]{32}'], defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function abortUpload(string $token, Request $request): Response
     {
         return $this->respond(function () use ($token, $request) {

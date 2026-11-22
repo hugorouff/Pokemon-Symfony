@@ -67,8 +67,17 @@ final class NeonSetup
                     email varchar(254) NOT NULL UNIQUE,
                     password_hash text NOT NULL
                 );
+                ALTER TABLE booster_openings ADD COLUMN IF NOT EXISTS owner_id varchar(32);
+                CREATE INDEX IF NOT EXISTS booster_openings_owner_date ON booster_openings (owner_id, type_filter, opened_at);
+                CREATE TABLE IF NOT EXISTS account_cards (
+                    owner_id varchar(32) NOT NULL REFERENCES rom_accounts(id) ON DELETE CASCADE,
+                    id varchar(103) NOT NULL,
+                    card jsonb NOT NULL,
+                    version bigint NOT NULL DEFAULT 1,
+                    PRIMARY KEY (owner_id, id)
+                );
                 SQL);
-            $io->success('PostgreSQL accessible. Tables des ROMs, sauvegardes, comptes et boosters disponibles.');
+            $io->success('PostgreSQL accessible. Tables des ROMs, sauvegardes, comptes, collections et boosters disponibles.');
             if ($this->cloud->enabled()) {
                 $io->success(sprintf('Stockage S3 accessible. %d jeu(x) disponible(s).', count($this->cloud->list())));
                 if ($origin !== '') {

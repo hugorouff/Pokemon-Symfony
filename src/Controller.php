@@ -21,7 +21,7 @@ final class Controller
     ) {}
 
     #[Route('/', name: 'home', defaults: ['section' => 'accueil'], methods: ['GET'])]
-    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur'], methods: ['GET'])]
+    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte'], methods: ['GET'])]
     public function page(string $section): Response
     {
         return new Response($this->twig->render('app.html.twig', [
@@ -51,6 +51,12 @@ final class Controller
     public function unlockRoms(Request $request, RomAccess $access): JsonResponse
     {
         return $access->login($request);
+    }
+
+    #[Route('/api/rom-access/register', methods: ['POST'])]
+    public function register(Request $request, RomAccess $access): JsonResponse
+    {
+        return $access->register($request);
     }
 
     #[Route('/api/rom-access/logout', methods: ['POST'])]
@@ -99,13 +105,23 @@ final class Controller
     }
 
     #[Route('/api/booster', methods: ['POST'])]
-    public function booster(Request $request, Postgres $database): JsonResponse
+    #[Route('/api/collection/booster', defaults: ['_private_account' => true], methods: ['POST'])]
+    public function booster(Request $request, Postgres $database, AccountCollection $collection): JsonResponse
     {
-        return $this->api(function () use ($request, $database): array {
+        return $this->api(function () use ($request, $database, $collection): array {
             $language = $this->language($request);
             $set = $request->query->getString('set');
             $type = $request->query->getString('type');
             $cards = $this->catalog->booster($language, $set, $type);
+            if ($request->attributes->get('_private_account')) {
+                try {
+                    $remaining = $collection->recordBooster($request->attributes->getString('rom.owner'), $language, $set, $type, $cards);
+                } catch (\PDOException) {
+                    throw new \Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException(null, 'Impossible d’enregistrer ce booster dans la collection.');
+                }
+
+                return ['data' => $cards, 'remaining' => $remaining];
+            }
             if ($database->enabled()) {
                 try {
                     $statement = $database->connection()->prepare(

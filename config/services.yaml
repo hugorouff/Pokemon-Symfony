@@ -23,6 +23,7 @@ services:
         arguments:
             $directory: '%env(ROMS_DIRECTORY)%'
             $romLoginLimiter: '@limiter.rom_login'
+            $accountRegistrationLimiter: '@limiter.account_registration'
 
     App\RomSaves:
         arguments:
@@ -41,6 +42,11 @@ services:
     App\PostgresRomSaves: ~
 
     App\RomAccounts: ~
+
+    App\AccountCollection: ~
+
+    App\CollectionController:
+        tags: ['controller.service_arguments']
 
     App\CreateRomAccount: ~
 
@@ -62,6 +68,10 @@ framework:
             policy: sliding_window
             limit: 8
             interval: '5 minutes'
+        account_registration:
+            policy: sliding_window
+            limit: 6
+            interval: '10 minutes'
     http_client:
         default_options:
             timeout: 8

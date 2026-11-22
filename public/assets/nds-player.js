@@ -1,3 +1,4 @@
+import {accountState} from './account-session.js';
 import {button, node} from './ui.js';
 
 const $ = id => document.getElementById(id);
@@ -12,10 +13,10 @@ let cloudStorage = false;
 let cloudSaves = false;
 let csrfToken = '';
 let accountId;
+let canSave = false;
 let playingRom;
 let selectedSaveRom;
 let saveBusy = false;
-const accessForm = $('rom-login');
 const saveDialog = $('rom-saves');
 const saveForm = $('save-import');
 const dateFormat = new Intl.DateTimeFormat('fr-FR', {dateStyle: 'medium', timeStyle: 'short'});
@@ -192,48 +193,13 @@ tabs.addEventListener('keydown', event => {
     selectGame(next[event.key], true);
 });
 
-async function applyAccess(data) {
+function applyAccess(data) {
     csrfToken = data.token;
     accountId = data.accountId;
-    $('rom-email-label').hidden = !data.accounts;
-    $('rom-email').hidden = !data.accounts;
-    $('rom-email').disabled = !data.accounts;
-    $('rom-email').required = data.accounts;
-    $('rom-access').hidden = data.authenticated;
-    $('selection').hidden = !data.authenticated;
-    $('rom-toolbar').hidden = !data.authenticated;
-    accessForm.hidden = !data.configured;
-    $('rom-setup').hidden = data.configured;
-    if (data.authenticated) await loadLibrary();
+    canSave = data.authenticated;
 }
 
-accessForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    const submit = accessForm.querySelector('button');
-    if (submit.disabled) return;
-    submit.disabled = true;
-    try {
-        const data = await post('/api/rom-access/login', new FormData(accessForm));
-        accessForm.reset();
-        await applyAccess(data);
-        status('');
-    } catch (error) {
-        status(error.message, true);
-    } finally {
-        submit.disabled = false;
-    }
-});
-
-$('rom-logout').addEventListener('click', async () => {
-    try {
-        await post('/api/rom-access/logout');
-        try { await globalThis.caches?.delete(romCache); } catch {}
-        location.reload();
-    } catch (error) {
-        status(error.message, true);
-    }
-});
-
+const access = accountState().then(applyAccess).catch(() => {});
 
 function savesUrl(rom) {
     return '/api/roms/' + rom.id + '/sauvegardes';
@@ -254,19 +220,24 @@ async function loadSaves(rom) {
     if (!rows.length) $('save-list').append(node('li', '', 'Aucune sauvegarde pour ce jeu.'));
 }
 
-function showSaves(rom) {
+async function showSaves(rom) {
+    await access;
+    if (!canSave) await accountState(true).then(applyAccess).catch(() => {});
     selectedSaveRom = rom;
     $('save-title').textContent = 'Sauvegardes · ' + rom.name;
     $('save-list').replaceChildren();
     $('save-status').textContent = '';
     saveForm.reset();
+    $('save-account').hidden = canSave;
+    saveForm.hidden = !canSave;
     if (!saveDialog.open) saveDialog.showModal();
+    if (!canSave) return;
     loadSaves(rom).catch(error => { if (selectedSaveRom === rom) $('save-status').textContent = error.message; });
 }
 
 saveForm.addEventListener('submit', async event => {
     event.preventDefault();
-    if (saveBusy) return;
+    if (saveBusy || !canSave) return;
     const rom = selectedSaveRom;
     const payload = new FormData(saveForm);
     const submit = saveForm.querySelector('button');
@@ -442,6 +413,7 @@ async function openRom(rom) {
         } else {
             gameId = Number.parseInt(rom.id.slice(0, 8), 16);
         }
+        await access;
         if (accountId && globalThis.crypto?.subtle) {
             const identity = new TextEncoder().encode(accountId + ':' + gameId);
             gameId = new DataView(await crypto.subtle.digest('SHA-256', identity)).getUint32(0, false);
@@ -488,6 +460,6 @@ $('change-rom').addEventListener('click', () => {
 window.addEventListener('pagehide', event => {
     if (gameUrl && !event.persisted) URL.revokeObjectURL(gameUrl);
 });
-fetch('/api/rom-access').then(readJson).then(applyAccess).catch(error => {
+loadLibrary().catch(error => {
     status(error instanceof TypeError ? 'Impossible de joindre le serveur de la bibliothèque.' : error.message, true);
 });

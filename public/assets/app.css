@@ -116,3 +116,9 @@ input[type=text]{border:1px solid #c9d3c7;background:white;color:var(--ink);bord
 #deck-pages:empty,#album-pages:empty{display:none}
 @media(max-width:720px){.workbench{grid-template-columns:1fr}}
 @media(max-width:480px){.album-heading{align-items:start}.album-detail,.deck-panel{padding:12px}.album-heading button{min-height:32px;font-size:.8rem}}
+
+.account-forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1rem}
+.account-panel{display:grid;gap:.65rem;padding:1.25rem;align-content:start;max-width:36rem}
+.account-panel input,.account-panel button{min-width:0}
+.account-panel button{justify-self:start}
+.account-panel h2{margin:0 0 .25rem}

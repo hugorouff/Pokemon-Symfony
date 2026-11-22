@@ -1,4 +1,5 @@
-import {changeCard, getCollection, importCollection, remainingBoosters, storeCards} from './collection.js';
+import {accountState} from './account-session.js';
+import {changeCard, drawBooster, getCollection, importCollection, importLocalCollection, remainingBoosters, storeCards} from './collection.js';
 import {api, button, clean, collator, fmt, node} from './ui.js';
 
 const section = document.body.dataset.section;
@@ -293,8 +294,7 @@ async function openBooster(pack, packs) {
         const available = await remainingBoosters(type);
         showBoosterCount(pack, available);
         if (available <= 0) throw new Error('La limite quotidienne de ce booster est atteinte.');
-        const {data} = await api('/api/booster', query, {method: 'POST'});
-        const remaining = await storeCards(data, query.lang, 'draw', type);
+        const {data, remaining} = await drawBooster(query, type);
         showBoosterCount(pack, remaining);
         cardsGrid(data, query.lang);
         message(`5 cartes ajoutées à la collection. Ouvertures restantes aujourd’hui · ${remaining}`);
@@ -309,8 +309,8 @@ async function updateCollection(id, callback) {
     try {
         await changeCard(id, callback);
         await showCollection();
-    } catch {
-        message('Impossible de modifier la collection.', true);
+    } catch (error) {
+        message(error.message || 'Impossible de modifier la collection.', true);
     }
 }
 
@@ -387,6 +387,24 @@ if (section === 'boosters') {
 }
 
 if (section === 'collection') {
+    const transfer = document.querySelector('#import-local-collection');
+    accountState().then(state => {
+        transfer.hidden = !state.accountId;
+        document.querySelector('#collection-guest').hidden = !!state.accountId;
+    }).catch(() => {});
+    transfer.addEventListener('click', async () => {
+        transfer.disabled = true;
+        try {
+            const count = await importLocalCollection();
+            await showCollection();
+            message(count ? `${count} carte(s) locale(s) importée(s).` : 'Aucune carte locale à importer.');
+        } catch (error) {
+            message(error.message, true);
+        } finally {
+            transfer.disabled = false;
+        }
+    });
+
     showCollection();
     filters.addEventListener('submit', event => {
         event.preventDefault();

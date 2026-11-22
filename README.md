@@ -24,7 +24,7 @@ Pour un hébergement, configurez `public/` comme dossier public et redirigez les
 - Le catalogue récupère ses données de [TCGdex](https://tcgdex.dev/fr/rest/cards). Le ZIP inclut les index du 19 novembre 2026, avec 22 342 entrées en français et 23 912 en anglais. La recherche par nom ou identifiant, les filtres et la pagination s’appliquent à toutes les entrées de la langue choisie. Chaque langue a sa propre couverture. Certaines entrées de TCGdex sont dépourvues de visuel.
 - Les fiches de cartes chargent les données de TCGdex et les mettent en cache pour 24 heures. Une fiche simplifiée reste disponible depuis l’index si la source ne répond pas. Les images sont servies par la source. Les boosters virtuels tirent cinq cartes illustrées distinctes parmi les résultats filtrés. Le quota est de 10 tirages aléatoires ou 3 tirages par type et par jour, dans le navigateur.
 - Le Pokédex inclut 1 025 espèces et 326 formes alternatives, avec les données de [PokéAPI](https://pokeapi.co/docs/v2). Symfony récupère les cris modernes et classiques via PokéAPI et les sert sous `/api/pokemon/{id}/cry/{latest|legacy}`. Il conserve une copie audio en cache après la première lecture. Les fiches de cartes donnent aussi accès aux cris quand TCGdex fournit un numéro de Pokédex. Une connexion est nécessaire pour charger les images et récupérer chaque cri la première fois.
-- La collection utilise IndexedDB. Elle lit les cartes de l’ancienne application si vous reprenez **le même navigateur et la même adresse**, port inclus. Vous pouvez exporter la collection en JSON, puis l’importer depuis une autre adresse ou un autre navigateur. Les doublons, quantités et favoris sont enregistrés localement.
+- Avec un compte, **Ma collection** conserve les cartes, les quantités et les favoris dans PostgreSQL. Les boosters ouverts connecté alimentent la collection. Les visiteurs gardent leur collection dans IndexedDB. Sur l’adresse d’origine, connectez-vous puis utilisez **Importer mes cartes de ce navigateur** pour récupérer vos anciennes cartes. Vous pouvez aussi exporter le JSON depuis l’ancien site et l’importer sur Render. Les decks restent dans le navigateur et sont séparés par compte.
 
 Pour récupérer les nouvelles cartes et séries de TCGdex, lancez la commande ci-dessous. Ajoutez `fr` ou `en` en argument pour actualiser une seule langue. La mise à jour remplace l’index de la langue après réception des cartes, des séries et des types.
 
@@ -38,9 +38,9 @@ Les **Albums** affichent la progression par série et par langue. Ouvrez une sé
 
 Dans **Decks**, créez et renommez plusieurs listes de 60 cartes maximum à partir de votre collection. Le nombre d’exemplaires ajoutables dépend de la quantité possédée. Si une carte disparaît de la collection, le deck garde sa référence et signale les exemplaires manquants. Chaque deck s’exporte en fichier texte.
 
-## Bibliothèque privée de ROMs
+## ROMs publiques et sauvegardes personnelles
 
-La page **Mes ROMs** affiche un onglet par jeu disponible. Chaque onglet donne accès au lecteur, au téléchargement et aux sauvegardes du jeu. La page ne permet plus l’ajout de jeux. Les fichiers existants restent disponibles dans le dossier privé `roms/` ou dans le bucket privé configuré.
+La page **Mes ROMs** s’ouvre sans compte et affiche un onglet par jeu disponible. Les sauvegardes en ligne nécessitent une connexion. Chaque onglet donne accès au lecteur, au téléchargement et aux sauvegardes du jeu. La page ne permet plus l’ajout de jeux. Les fichiers existants restent disponibles dans le dossier privé `roms/` ou dans le bucket privé configuré.
 
 Les jeux Nintendo DS peuvent être fournis en `.nds` ou dans un ZIP classique contenant un seul `.nds` non chiffré, de 512 Mio maximum une fois décompressé. Le lecteur télécharge la ROM puis la met en cache lorsque le navigateur le permet. La déconnexion de la bibliothèque efface ce cache. Les moteurs sont chargés via [EmulatorJS](https://emulatorjs.org/docs/systems/). Les fichiers `.3ds` et `.nsp` restent téléchargeables.
 
@@ -95,7 +95,7 @@ Pour un essai local, conservez les variables produites par Neon dans `.env.local
 | `ROM_S3_BUCKET` | `roms-ds` |
 | `AWS_ENDPOINT_URL_S3`, `AWS_REGION` | Endpoint S3 Neon de la branche et région renvoyée par Neon. |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Clés de stockage Neon pour la branche `production`. |
-| `ROM_USER_ACCOUNTS` | `1` pour activer la connexion par compte individuel. Sans cette option, le mot de passe partagé de la bibliothèque reste disponible. |
+| `ROM_USER_ACCOUNTS` | `1` pour permettre l’inscription depuis **Mon compte** et enregistrer les collections et sauvegardes par compte. |
 | `APP_SECRET` | Valeur secrète stable et propre à l’application, à définir sur l’hébergement. |
 
 Les variables historiques `ROM_S3_ENDPOINT`, `ROM_S3_REGION`, `ROM_S3_ACCESS_KEY` et `ROM_S3_SECRET_KEY` fonctionnent encore si elles sont déjà configurées et sont prioritaires sur leurs équivalents `AWS_*`.
@@ -111,11 +111,11 @@ php bin/console app:roms:account deuxieme.joueur@example.com
 
 Remplacez l’origine par l’adresse exacte de votre site, sans barre oblique finale. La commande prépare les tables et vérifie l’accès au bucket, puis crée ou met à jour la règle CORS de cette origine. Les deux dernières commandes génèrent un mot de passe pour chaque compte. Utilisez `--rotate` pour renouveler un mot de passe existant. En production, servez uniquement le dossier `public/` et configurez HTTPS. Pour les sauvegardes vers PostgreSQL, le plafond de l’application est de 16 Mio par fichier. Les limites PHP et celles de l’hébergeur peuvent être inférieures.
 
-Chaque ouverture enregistre les cinq cartes obtenues dans `booster_openings` lorsque `DATABASE_URL` est configurée. La collection du navigateur et ses limites quotidiennes continuent à fonctionner avec IndexedDB. Les sauvegardes PostgreSQL sont séparées par compte en mode individuel. Les sauvegardes existantes sur disque ou dans un ancien bucket peuvent être récupérées depuis leur stockage d’origine et réimportées sous le bon compte.
+Chaque ouverture enregistre les cinq cartes obtenues dans `booster_openings` lorsque `DATABASE_URL` est configurée. Les limites quotidiennes sont calculées par compte dans PostgreSQL pour les joueurs connectés et dans IndexedDB pour les visiteurs. Les sauvegardes PostgreSQL sont séparées par compte en mode individuel. Les sauvegardes existantes sur disque ou dans un ancien bucket peuvent être récupérées depuis leur stockage d’origine et réimportées sous le bon compte.
 
 ### Image Docker
 
-Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Exécutez les commandes de création des tables et des comptes avec ces mêmes variables. L’image écoute sur le port 80.
+Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Avant de déployer cette mise à jour, lancez `php bin/console app:neon:setup` avec la même URL PostgreSQL pour ajouter les tables de collection. Les joueurs peuvent ensuite s’inscrire depuis **Mon compte**. Les comptes existants gardent leurs identifiants. L’image écoute sur le port 80.
 
 ## Vérification du catalogue
 

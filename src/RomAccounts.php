@@ -35,6 +35,16 @@ final class RomAccounts
         return $query->rowCount() ? $password : null;
     }
 
+    public function register(string $email, string $password): ?array
+    {
+        $query = $this->database->connection()->prepare(
+            'INSERT INTO rom_accounts (id, email, password_hash) VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id, password_hash'
+        );
+        $query->execute([bin2hex(random_bytes(16)), strtolower(trim($email)), password_hash($password, PASSWORD_DEFAULT)]);
+
+        return $query->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
     private function find(string $column, string $value): ?array
     {
         $query = $this->database->connection()->prepare('SELECT id, password_hash FROM rom_accounts WHERE '.$column.' = ?');

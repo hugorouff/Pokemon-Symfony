@@ -1,12 +1,15 @@
+import {accountRequest, accountState} from './account-session.js';
+import {api} from './ui.js';
+
 const requestResult = request => new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
 });
 
-let database;
-function openDatabase() {
-    if (!database) {
-        const request = indexedDB.open('pokemonCollection', 3);
+const databases = new Map();
+function openDatabase(name = 'pokemonCollection') {
+    if (!databases.has(name)) {
+        const request = indexedDB.open(name, 3);
         request.onupgradeneeded = () => {
             const db = request.result;
             if (!db.objectStoreNames.contains('cards')) {
@@ -34,17 +37,17 @@ function openDatabase() {
                 }
                 db.onversionchange = () => {
                     db.close();
-                    database = undefined;
+                    databases.delete(name);
                 };
                 resolve(db);
             };
         });
-        database = opening.catch(error => {
-            database = undefined;
+        databases.set(name, opening.catch(error => {
+            databases.delete(name);
             throw error;
-        });
+        }));
     }
-    return database;
+    return databases.get(name);
 }
 
 function safeImage(value) {
@@ -76,7 +79,7 @@ export function normalizeCard(card) {
     };
 }
 
-export async function getCollection() {
+async function localCollection() {
     const db = await openDatabase();
     const cards = await requestResult(db.transaction('cards').objectStore('cards').getAll());
     return cards.map(card => {
@@ -84,6 +87,33 @@ export async function getCollection() {
         normalized.id = card.id; // Les cartes de la première version gardent leur clé.
         return normalized;
     });
+}
+
+export async function getCollection() {
+    const state = await accountState();
+    if (!state.accountId) return localCollection();
+    return (await api('/api/collection', {}, {cache: 'no-store'})).data.map(({version, ...card}) => card);
+}
+
+export async function importLocalCollection() {
+    const state = await accountState();
+    const cards = await localCollection();
+    if (!state.accountId || !cards.length) return 0;
+    await accountRequest('/api/collection', {}, 'POST', state.token, {mode: 'import', cards});
+    return cards.length;
+}
+
+let onlineLimits;
+export async function drawBooster(query, type) {
+    const state = await accountState();
+    if (state.accountId) {
+        const pack = await accountRequest('/api/collection/booster', query, 'POST', state.token);
+        onlineLimits = undefined;
+        return pack;
+    }
+    const {data} = await api('/api/booster', query, {method: 'POST'});
+    const remaining = await storeCards(data, query.lang, 'draw', type);
+    return {data, remaining};
 }
 
 const oldTypes = {feu: 'fire', eau: 'water', plante: 'grass', electrique: 'lightning', psy: 'psychic',
@@ -107,6 +137,11 @@ function initialLimits(type) {
 }
 
 export async function remainingBoosters(type) {
+    const state = await accountState();
+    if (state.accountId) {
+        onlineLimits ??= api('/api/collection/limits', {}, {cache: 'no-store'});
+        return (await onlineLimits)[type] ?? 0;
+    }
     const db = await openDatabase();
     const initial = initialLimits(type);
     const previous = await requestResult(db.transaction('limits').objectStore('limits').get(type));
@@ -114,9 +149,6 @@ export async function remainingBoosters(type) {
 }
 
 export async function storeCards(cards, lang, mode, type) {
-    const db = await openDatabase();
-    const transaction = db.transaction(type ? ['cards', 'limits'] : ['cards'], 'readwrite');
-    const store = transaction.objectStore('cards');
     const managed = cards.map(card => {
         const row = normalizeCard(lang ? {...card, cardId: card.id, lang} : card);
         if (mode === 'import' && !card.id.includes(':')) {
@@ -124,6 +156,15 @@ export async function storeCards(cards, lang, mode, type) {
         }
         return row;
     });
+    const state = await accountState();
+    if (state.accountId) {
+        await accountRequest('/api/collection', {}, 'POST', state.token, {mode, cards: managed});
+        return;
+    }
+
+    const db = await openDatabase();
+    const transaction = db.transaction(type ? ['cards', 'limits'] : ['cards'], 'readwrite');
+    const store = transaction.objectStore('cards');
     let failure;
     let remaining;
     const completed = new Promise((resolve, reject) => {
@@ -168,6 +209,15 @@ export async function storeCards(cards, lang, mode, type) {
 }
 
 export async function changeCard(id, callback) {
+    const state = await accountState();
+    if (state.accountId) {
+        const {data: [card]} = await api('/api/collection', {id}, {cache: 'no-store'});
+        if (!card) return;
+        await accountRequest('/api/collection', {}, 'PATCH', state.token, {
+            id, version: card.version, card: callback(card)
+        });
+        return;
+    }
     const db = await openDatabase();
     const transaction = db.transaction('cards', 'readwrite');
     const store = transaction.objectStore('cards');
@@ -201,13 +251,17 @@ export async function importCollection(file) {
 
 export const DECK_CAPACITY = 60;
 
+function openDeckDatabase(state) {
+    return openDatabase(state.accountId ? 'pokemonCollection-' + state.accountId : undefined);
+}
+
 export async function getDecks() {
-    const db = await openDatabase();
+    const db = await openDeckDatabase(await accountState());
     return requestResult(db.transaction('decks').objectStore('decks').getAll());
 }
 
 export async function createDeck(name) {
-    const db = await openDatabase();
+    const db = await openDeckDatabase(await accountState());
     const transaction = db.transaction('decks', 'readwrite');
     const request = transaction.objectStore('decks').add({name: deckName(name), entries: []});
     return new Promise((resolve, reject) => {
@@ -223,8 +277,11 @@ function deckName(name) {
 }
 
 export async function changeDeck(id, change) {
-    const db = await openDatabase();
-    const transaction = db.transaction(['decks', 'cards'], 'readwrite');
+    const state = await accountState();
+    const accountCard = state.accountId && change.kind === 'add'
+        ? (await api('/api/collection', {id: change.key}, {cache: 'no-store'})).data[0] : null;
+    const db = await openDeckDatabase(state);
+    const transaction = db.transaction(state.accountId ? ['decks'] : ['decks', 'cards'], 'readwrite');
     const decks = transaction.objectStore('decks');
     let failure;
     const completed = new Promise((resolve, reject) => {
@@ -262,9 +319,7 @@ export async function changeDeck(id, change) {
             decks.put(deck);
             return;
         }
-        const cardRequest = transaction.objectStore('cards').get(change.key);
-        cardRequest.onsuccess = () => {
-            const card = cardRequest.result;
+        const addCard = card => {
             if (!card || (entry?.quantity || 0) >= (card.quantity || 1)) {
                 abort(new Error('Aucun exemplaire supplémentaire dans votre collection.'));
                 return;
@@ -281,6 +336,12 @@ export async function changeDeck(id, change) {
             }
             decks.put(deck);
         };
+        if (state.accountId) {
+            addCard(accountCard);
+        } else {
+            const cardRequest = transaction.objectStore('cards').get(change.key);
+            cardRequest.onsuccess = () => addCard(cardRequest.result);
+        }
     };
     return completed;
 }

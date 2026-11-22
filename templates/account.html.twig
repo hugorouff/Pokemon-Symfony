@@ -1,0 +1,33 @@
+<header class="page-title">
+    <h1>Mon compte</h1>
+    <p>Retrouve ta collection et tes sauvegardes DS sur tes appareils.</p>
+</header>
+<p id="account-status" class="status error" role="status"></p>
+<div class="account-forms">
+    <section id="account-summary" class="panel account-panel" hidden>
+        <h2>Compte connecté</h2>
+        <div class="actions">
+            <a class="primary" href="/collection">Ma collection</a>
+            <a class="secondary" href="/emulateur">Mes ROMs</a>
+        </div>
+        <form id="account-logout"><button type="submit" class="secondary">Se déconnecter</button></form>
+    </section>
+    <form id="account-login" class="panel account-panel" hidden>
+        <h2>Se connecter</h2>
+        <label for="login-email">Adresse mail</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" maxlength="254" required>
+        <label for="login-password">Mot de passe</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <button type="submit" class="primary">Se connecter</button>
+    </form>
+    <form id="account-register" class="panel account-panel" hidden>
+        <h2>Créer un compte</h2>
+        <label for="register-email">Adresse mail</label>
+        <input id="register-email" name="email" type="email" autocomplete="username" maxlength="254" required>
+        <label for="register-password">Mot de passe</label>
+        <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+        <label for="register-confirmation">Confirmer le mot de passe</label>
+        <input id="register-confirmation" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+        <button type="submit" class="primary">Créer mon compte</button>
+    </form>
+</div>
