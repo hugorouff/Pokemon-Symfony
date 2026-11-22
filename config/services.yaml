@@ -1,0 +1,73 @@
+parameters:
+    env(ROMS_DIRECTORY): '%kernel.project_dir%/roms'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Controller:
+        tags: ['controller.service_arguments']
+
+    App\RefreshCatalog: ~
+
+    App\Catalog:
+        arguments:
+            $dataDirectory: '%kernel.project_dir%/data'
+
+    App\RomLibrary:
+        arguments:
+            $directory: '%env(ROMS_DIRECTORY)%'
+
+    App\RomAccess:
+        arguments:
+            $directory: '%env(ROMS_DIRECTORY)%'
+            $romLoginLimiter: '@limiter.rom_login'
+
+    App\RomSaves:
+        arguments:
+            $directory: '%env(ROMS_DIRECTORY)%'
+
+    App\CloudRomStorage: ~
+
+    App\Postgres: ~
+
+    App\PostgresRomLibrary: ~
+
+    App\ImportPostgresRoms: ~
+
+    App\NeonSetup: ~
+
+    App\PostgresRomSaves: ~
+
+    App\RomAccounts: ~
+
+    App\CreateRomAccount: ~
+
+    App\RomController:
+        tags: ['controller.service_arguments']
+
+    App\ConfigureRomAccess: ~
+
+framework:
+    secret: '%env(APP_SECRET)%'
+    session:
+        name: POKEMON_ROM_SESSION
+        cookie_secure: auto
+        cookie_httponly: true
+        cookie_samesite: strict
+        save_path: '%kernel.project_dir%/var/sessions'
+    rate_limiter:
+        rom_login:
+            policy: sliding_window
+            limit: 8
+            interval: '5 minutes'
+    http_client:
+        default_options:
+            timeout: 8
+            max_duration: 12
+            headers:
+                Accept: 'application/json'
+
+twig:
+    default_path: '%kernel.project_dir%/templates'

@@ -1,0 +1,30 @@
+.nds-selection,.nds-player-top{padding:16px}
+.nds-selection form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.nds-selection label{grid-column:1/-1;font-weight:bold}
+.nds-selection input{width:100%;min-height:43px;padding:6px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink)}
+.nds-selection input::file-selector-button{font:inherit;background:#f1f1f1;color:var(--ink);border:0;border-radius:4px;padding:5px 9px;margin-right:10px;cursor:pointer}
+.nds-hint{font-size:.92rem;margin-top:10px}
+.nds-player-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+#current-game{overflow-wrap:anywhere}
+.nds-stage{height:clamp(360px,73vh,710px);background:#090c13;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.nds-stage #game{height:100%;width:100%}
+@media(max-width:540px){.nds-selection form{grid-template-columns:1fr}.nds-stage{height:min(68vh,640px);min-height:355px}}
+.nds-selection small{grid-column:1/-1}
+.rom-list{padding:0;margin:16px 0 0;list-style:none;display:grid;gap:8px}
+.rom-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;overflow-wrap:anywhere}
+.rom-meta{display:grid;gap:2px;min-width:0}
+.rom-row button{flex-shrink:0}
+#rom-login{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+#rom-login input{padding:8px;min-width:0}
+#rom-access{margin-bottom:16px}
+.rom-filters{padding-inline:0}
+.rom-toolbar p{margin:0}
+.rom-actions{justify-content:flex-end}
+.rom-download{white-space:nowrap}
+#rom-saves .nds-selection{padding-inline:0}
+#rom-saves input{min-width:0}
+@media(max-width:650px){.rom-row{align-items:flex-start;flex-direction:column}.rom-actions{justify-content:flex-start}}
+
+.rom-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.rom-tabs [aria-selected="true"]{background:var(--ink);color:#fff}
+.rom-tabs button{max-width:100%;overflow-wrap:anywhere}

@@ -1,0 +1,7 @@
+app:
+    resource: ../src/Controller.php
+    type: attribute
+
+roms:
+    resource: ../src/RomController.php
+    type: attribute

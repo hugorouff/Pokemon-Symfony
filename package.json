@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@neon/config": "^1.14.6",
+    "@neon/env": "^2.1.9"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node --check public/assets/app.js && node --check public/assets/nds-player.js && php bin/console cache:clear --env=prod"
+  }
+}

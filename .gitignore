@@ -1,0 +1,11 @@
+/vendor/
+/var/
+/roms/*
+!/roms/LISEZ-MOI.txt
+/node_modules/
+/.env
+/.env.local
+/.env.*.local
+/jeux/
+/.env.fusion
+/fusion/game/

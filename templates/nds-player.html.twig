@@ -1,0 +1,61 @@
+<header class="page-title">
+    <h1>Mes ROMs</h1>
+    <p>Retrouvez vos ROMs privées et vos jeux installés sur PC.</p>
+</header>
+<section id="rom-access" class="panel nds-selection" aria-label="Accès privé">
+    <form id="rom-login" hidden>
+        <label id="rom-email-label" for="rom-email" hidden>Adresse mail</label>
+        <input id="rom-email" name="email" type="email" autocomplete="username" hidden disabled>
+        <label for="rom-password">Mot de passe de la bibliothèque</label>
+        <input id="rom-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary" type="submit">Se connecter</button>
+    </form>
+    <p id="rom-setup" hidden>Pour créer le mot de passe, démarrez avec <code>LANCER.bat</code> ou lancez <code>php bin/console app:roms:password</code> sur le serveur.</p>
+</section>
+<section id="selection" aria-label="Bibliothèque de jeux">
+    <div id="rom-toolbar" class="panel nds-player-top rom-toolbar" hidden>
+        <p id="rom-totals"></p>
+        <button class="secondary" id="rom-logout" type="button">Se déconnecter</button>
+    </div>
+    <div id="rom-filters" class="filters rom-filters" hidden>
+        <label>Moteur Nintendo DS<select id="ds-core"><option value="desmume">DeSmuME</option><option value="desmume2015">DeSmuME 2015</option></select></label>
+    </div>
+    <div id="rom-tabs" class="rom-tabs" role="tablist" aria-label="Jeux"></div>
+    <div id="rom-game"></div>
+    <template id="infinite-fusion-panel">
+        <div class="panel nds-selection">
+            <h2>Pokémon Infinite Fusion</h2>
+            {% if infiniteFusionStreamUrl %}
+                <p>Le jeu s’ouvre dans un nouvel onglet. Les sauvegardes sont conservées sur le serveur de jeu.</p>
+                <div class="actions">
+                    <a class="primary" href="{{ infiniteFusionStreamUrl }}" target="_blank" rel="noopener noreferrer">Jouer en ligne</a>
+                </div>
+            {% else %}
+                <p>Le serveur de jeu doit être configuré pour jouer dans le navigateur.</p>
+            {% endif %}
+        </div>
+    </template>
+</section>
+<p id="status" class="status" role="status" aria-live="polite" hidden></p>
+<section id="player" hidden aria-label="Émulateur">
+    <div class="panel nds-player-top">
+        <strong id="current-game"></strong>
+        <div class="actions">
+            <button class="secondary" id="player-saves" type="button" hidden>Sauvegardes</button>
+            <button class="secondary" id="change-rom" type="button">Mes ROMs</button>
+        </div>
+    </div>
+    <div class="nds-stage"><div id="game"></div></div>
+    <p class="nds-hint">Pour conserver une sauvegarde de jeu sur le serveur, exportez-la depuis le menu de l’émulateur puis importez-la dans <strong>Sauvegardes</strong>.</p>
+</section>
+<dialog id="rom-saves">
+    <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
+    <h2 id="save-title">Sauvegardes</h2>
+    <form id="save-import" class="nds-selection">
+        <label for="save-file">Fichier de sauvegarde</label>
+        <input id="save-file" name="save" type="file" required>
+        <button class="primary" type="submit">Importer la sauvegarde</button>
+    </form>
+    <p id="save-status" class="status" role="status"></p>
+    <ul id="save-list" class="rom-list"></ul>
+</dialog>

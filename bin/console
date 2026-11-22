@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+
+require dirname(__DIR__).'/config/bootstrap.php';
+
+$env = $_SERVER['APP_ENV'] ?? getenv('APP_ENV') ?: 'prod';
+$debug = filter_var($_SERVER['APP_DEBUG'] ?? getenv('APP_DEBUG'), FILTER_VALIDATE_BOOL);
+exit((new Symfony\Bundle\FrameworkBundle\Console\Application(new App\Kernel($env, $debug)))->run());

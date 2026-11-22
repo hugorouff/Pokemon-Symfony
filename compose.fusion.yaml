@@ -1,0 +1,22 @@
+services:
+  fusion:
+    platform: linux/amd64
+    build: ./fusion
+    environment:
+      CUSTOM_USER: "${FUSION_USER:-joueur}"
+      PASSWORD: "${FUSION_PASSWORD:?Renseignez FUSION_PASSWORD dans .env.fusion}"
+    ports:
+      - "127.0.0.1:3081:3001"
+    volumes:
+      - fusion-state:/config
+      - type: bind
+        source: ./fusion/game
+        target: /game-source
+        read_only: true
+        bind:
+          create_host_path: false
+    shm_size: 1gb
+    restart: unless-stopped
+
+volumes:
+  fusion-state:

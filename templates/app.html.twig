@@ -1,0 +1,161 @@
+{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs'} %}
+{% set headings = {'cartes': 'Recherche Cartes Pokémon', 'boosters': 'Ouvrir un Booster Pack Pokémon', 'collection': 'Collection Cartes Pokémon'} %}
+{% set packs = {
+    'feu': ['Feu', 'feu'], 'eau': ['Eau', 'eau'], 'plante': ['Plante', 'plante'],
+    'electrique': ['Électrique', 'elec'], 'psy': ['Psy', 'psy'], 'combat': ['Combat', 'combat'],
+    'tenebres': ['Ténèbres', 'dark'], 'incolore': ['Incolore', 'incolore'], 'random': ['Aléatoire', 'random']
+} %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4CAF50">
+    <title>{{ nav[section] }} · Pokémon TCG App</title>
+    <link rel="stylesheet" href="/assets/app.css">
+    {% if section == 'emulateur' %}
+        <link rel="stylesheet" href="/assets/nds-player.css">
+        <script type="module" src="/assets/nds-player.js"></script>
+    {% else %}
+        <script type="module" src="/assets/app.js"></script>
+    {% endif %}
+</head>
+<body data-section="{{ section }}">
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="site-head">
+    <div class="shell head-inner">
+        {% if section == 'accueil' %}<h1>Pokémon TCG App</h1>
+        {% elseif headings[section] is defined %}<p class="site-title">{{ headings[section] }}</p>
+        {% else %}<a class="brand" href="{{ path('home') }}">Pokémon TCG App</a>{% endif %}
+        <nav aria-label="Navigation principale">
+            <ul class="menu">
+                {% for key, label in nav %}
+                    <li><a href="{{ key == 'accueil' ? path('home') : path('section', {section:key}) }}"{% if key == section %} aria-current="page"{% endif %}>{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+    </div>
+</header>
+{% if section != 'accueil' %}
+    <nav id="breadcrumb" aria-label="Fil d’Ariane"><div class="shell"><a href="{{ path('home') }}">Accueil</a><span aria-hidden="true"> &gt; </span><span aria-current="page">{{ nav[section] }}</span></div></nav>
+{% endif %}
+<main class="shell" id="contenu">
+{% if section == 'accueil' %}
+    <section class="welcome-section">
+        <h2>Bienvenue sur Pokémon TCG App</h2>
+        <p>Explorez les cartes Pokémon, ouvrez des boosters et gérez votre collection.</p>
+        <p>Utilisez le menu pour parcourir le Pokédex, organiser vos cartes ou ouvrir une ROM Nintendo DS.</p>
+    </section>
+{% elseif section == 'cartes' %}
+    <section id="header-search" class="tcg-heading">
+        <h1>Pokémon TCG Explorer</h1>
+        <form class="filters" id="filters">
+            <label class="wide">Rechercher<input name="q" type="search" maxlength="100" placeholder="Rechercher une carte (ex. Pikachu)" autocomplete="off"></label>
+            <label>Langue<select name="lang"><option value="fr">Français</option><option value="en">Anglais</option></select></label>
+            <label class="wide">Série<select name="set"><option value="">Toutes les séries</option></select></label>
+            <label>Type<select name="type"><option value="">Tous les types</option>{% for id, pack in packs %}{% if id != 'random' %}<option value="{{ id }}">{{ pack[0] }}</option>{% endif %}{% endfor %}</select></label>
+            <label>Tri<select name="sort"><option value="catalogue">Catalogue</option><option value="az">Nom A–Z</option><option value="za">Nom Z–A</option></select></label>
+            <button class="primary">Rechercher</button>
+        </form>
+    </section>
+    <section class="cards-section">
+        <h2>Cartes Pokémon</h2><p id="status" class="status" role="status"></p>
+        <div id="results" class="card-grid"></div>
+        <nav id="pager" class="pager" aria-label="Pages des cartes"></nav>
+    </section>
+{% elseif section == 'boosters' %}
+    <section id="header-search" class="tcg-heading">
+        <h1>Pokémon TCG Booster</h1>
+        <form class="filters" id="filters">
+            <label>Langue<select name="lang"><option value="fr">Français</option><option value="en">Anglais</option></select></label>
+            <label class="wide">Série<select name="set"><option value="">Toutes les séries</option></select></label>
+        </form>
+    </section>
+    <div class="booster-container" aria-label="Choisir un booster">
+        {% for id, pack in packs %}
+            <button class="booster" type="button" data-booster="{{ id }}">
+                <img src="/assets/boosters/{{ pack[1] }}.jpg" alt="" width="1024" height="1024" loading="{{ loop.index > 3 ? 'lazy' : 'eager' }}">
+                <strong class="booster-name">Booster {{ pack[0] }}</strong>
+                <span class="remaining" data-remaining>Vérification des ouvertures…</span>
+            </button>
+        {% endfor %}
+    </div>
+    <p id="status" class="status" role="status" tabindex="-1"></p>
+    <div id="results" class="card-grid"></div>
+{% elseif section == 'collection' %}
+    <section id="header-search" class="tcg-heading">
+        <h1>Pokémon TCG Collection</h1>
+        <form class="filters" id="filters">
+            <label class="wide">Rechercher<input name="q" type="search" placeholder="Nom ou identifiant"></label>
+            <label>Afficher<select name="view"><option value="all">Toutes les cartes</option><option value="favorites">Favoris</option><option value="duplicates">Doubles</option></select></label>
+            <label>Type<select name="type"><option value="">Tous les types connus</option></select></label>
+            <label>Rareté<select name="rarity"><option value="">Toutes les raretés connues</option></select></label>
+            <label>Tri<select name="sort"><option value="az">Nom A–Z</option><option value="za">Nom Z–A</option><option value="quantity">Quantité</option><option value="rarity">Rareté</option><option value="type">Type</option></select></label>
+            <button class="primary">Filtrer</button>
+        </form>
+    </section>
+    <section class="cards-section">
+        <h2>Cartes Pokémon</h2>
+        <div class="actions transfer"><button class="secondary" id="export">Exporter en JSON</button><label class="secondary upload">Importer un JSON<input id="import" type="file" accept="application/json,.json"></label></div>
+        <p id="status" class="status" role="status"></p>
+        <div id="results" class="card-grid"></div>
+    </section>
+{% elseif section == 'albums' %}
+    <header class="page-title"><p class="eyebrow">Mes cartes</p><h1>Albums par série</h1><p>Comparez votre collection au catalogue et retrouvez les cartes qui vous manquent.</p></header>
+    <form id="album-filters" class="panel filters">
+        <label>Langue<select name="lang"><option value="fr">Français</option><option value="en">Anglais</option></select></label>
+        <label class="wide">Série<input name="q" type="search" maxlength="100" placeholder="Nom d’une série" autocomplete="off"></label>
+        <label>Progression<select name="view"><option value="all">Toutes les séries</option><option value="started">Séries commencées</option><option value="complete">Séries terminées</option></select></label>
+    </form>
+    <p id="status" class="status" role="status"></p>
+    <section id="album-detail" class="panel album-detail" hidden>
+        <div class="album-heading"><h2 id="album-name"></h2><button class="secondary" id="close-album" type="button">Fermer la série</button></div>
+        <div id="album-views" class="actions" aria-label="Cartes de la série"></div>
+        <p id="album-summary" class="status" role="status"></p>
+        <div id="results" class="card-grid"></div>
+        <nav id="album-pages" class="pager" aria-label="Pages de la série"></nav>
+    </section>
+    <div id="album-list" class="album-grid"></div>
+{% elseif section == 'decks' %}
+    <header class="page-title"><p class="eyebrow">Mes cartes</p><h1>Mes decks</h1><p>Composez plusieurs decks de 60 cartes à partir de votre collection et exportez leurs listes.</p></header>
+    <form class="panel filters" id="new-deck">
+        <label class="wide">Nom du nouveau deck<input name="name" type="text" maxlength="60" placeholder="Mon premier deck" required></label>
+        <button class="primary">Créer un deck</button>
+    </form>
+    <p id="status" class="status" role="status"></p>
+    <section id="deck-layout" class="workbench" hidden>
+        <div class="panel deck-panel">
+            <h2>Composition</h2>
+            <label>Deck actif<select id="deck-select"></select></label>
+            <form id="rename-deck" class="actions"><label>Nouveau nom<input name="name" type="text" maxlength="60" required></label><button class="secondary">Renommer</button></form>
+            <progress id="deck-progress" value="0" max="60" aria-label="Cartes dans le deck"></progress>
+            <p id="deck-count" role="status"></p>
+            <ul id="deck-entries" class="workbench-list"></ul>
+            <div class="actions"><button class="secondary" id="deck-export" type="button">Exporter la liste</button><button class="secondary" id="deck-delete" type="button">Supprimer le deck</button></div>
+        </div>
+        <div class="panel deck-panel">
+            <h2>Cartes de la collection</h2>
+            <label>Rechercher<input id="deck-search" type="search" placeholder="Nom ou numéro de carte"></label>
+            <label class="checkbox"><input id="deck-favorites" type="checkbox"> Favoris uniquement</label>
+            <ul id="deck-library" class="workbench-list"></ul>
+            <nav id="deck-pages" class="pager" aria-label="Pages de la collection"></nav>
+        </div>
+    </section>
+{% elseif section == 'pokedex' %}
+    <header class="page-title"><p class="eyebrow">Pokémon et formes</p><h1>Pokédex sonore</h1><p>Recherchez un Pokémon par son nom ou son numéro. Écoutez son cri actuel et la version classique quand elle est disponible.</p></header>
+    <form class="panel filters" id="filters">
+        <label class="wide">Pokémon<input name="q" type="search" maxlength="100" placeholder="Pikachu, Vipélierre, 25…" autocomplete="off"></label>
+        <label class="checkbox"><input name="forms" type="checkbox" value="1"> Inclure les formes alternatives</label>
+        <button class="primary">Rechercher</button>
+    </form>
+    <p id="status" class="status" role="status"></p>
+    <div id="results" class="dex-grid"></div>
+    <nav id="pager" class="pager" aria-label="Pages du Pokédex"></nav>
+{% elseif section == 'emulateur' %}
+    {% include 'nds-player.html.twig' %}
+{% endif %}
+</main>
+<footer class="site-foot"><span>Pokémon TCG App · Données <a href="https://tcgdex.dev/">TCGdex</a> et <a href="https://pokeapi.co/">PokéAPI</a></span></footer>
+<dialog id="detail"><div class="dialog-top"><button id="close-detail" class="secondary" type="button">Fermer <span aria-hidden="true">×</span></button></div><div id="detail-content"></div></dialog>
+</body>
+</html>
