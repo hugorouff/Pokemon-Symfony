@@ -52,6 +52,15 @@ final class PostgresRomSaves
         return ['id' => $id, 'name' => $name, 'core' => $core, 'size' => $size, 'modified' => (int) $query->fetchColumn()];
     }
 
+    public function delete(string $rom, string $owner, string $id): void
+    {
+        $query = $this->database->connection()->prepare('DELETE FROM rom_saves WHERE rom_id = ? AND owner_id = ? AND id = ?');
+        $query->execute([$rom, $owner, $id]);
+        if ($query->rowCount() !== 1) {
+            throw new NotFoundHttpException('Sauvegarde introuvable.');
+        }
+    }
+
     public function read(string $rom, string $owner, string $id): array
     {
         $query = $this->database->connection()->prepare('SELECT name, content FROM rom_saves WHERE rom_id = ? AND owner_id = ? AND id = ?');

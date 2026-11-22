@@ -176,17 +176,44 @@ final class Catalog
         return $selected;
     }
 
-    public function dex(string $query, bool $forms, int $page, int $size): array
+    public function dex(string $query, bool $forms, int $page, int $size, string $mode = '', string $type = '', array $favorites = []): array
     {
         $needle = $this->normalize($query);
-        $entries = array_values(array_filter($this->index('dex'), fn (array $row) =>
-            ($forms || $row[4])
-            && ($needle === '' || (ctype_digit($needle) && ((int) $needle === $row[0] || (int) $needle === $row[1]))
-                || str_contains($this->normalize($row[3]), $needle)
-                || str_contains($row[2], $needle))
-        ));
+        $entries = array_values(array_filter($this->index('dex'), function (array $row) use ($forms, $mode, $needle, $type, $favorites): bool {
+            $eligible = match ($mode) {
+                'mega' => $this->isMega($row[2]),
+                'gmax' => str_ends_with($row[2], '-gmax'),
+                'favorites' => isset($favorites[$row[0]]),
+                default => $forms || $row[4],
+            };
+            $name = $this->dexName($row[2], $row[3], (bool) $row[4]);
+
+            return $eligible && ($type === '' || in_array($type, $row[6], true))
+                && ($needle === '' || (ctype_digit($needle) && ((int) $needle === $row[0] || (int) $needle === $row[1]))
+                    || str_contains($this->normalize($name), $needle)
+                    || str_contains($row[2], $needle));
+        }));
 
         return $this->page($entries, $page, $size, fn (array $row) => $this->pokemon($row));
+    }
+
+    private function isMega(string $slug): bool
+    {
+        return in_array('mega', explode('-', $slug), true);
+    }
+
+    private function dexName(string $slug, string $name, bool $default): string
+    {
+        if ($default) {
+            return $name;
+        }
+        if ($this->isMega($slug)) {
+            $suffix = substr($slug, strrpos($slug, 'mega') + 4);
+
+            return 'Méga-'.$name.strtoupper(str_replace('-', ' ', $suffix));
+        }
+
+        return str_ends_with($slug, '-gmax') ? $name.' Gigamax' : $name.' · '.$slug;
     }
 
     public function pokemonDetail(int $id): array
@@ -194,7 +221,11 @@ final class Catalog
         $entry = $this->pokemonEntry($id);
         $live = $this->livePokemon($id);
 
+        $forms = array_filter($this->index('dex'), static fn (array $row) => $row[1] === $entry['number'] && $row[0] !== $id);
+
         return array_replace($entry, [
+            'forms' => array_values(array_map(fn (array $row) => $this->pokemon($row), $forms)),
+            'stats' => array_column($live['stats'] ?? [], 'base_stat'),
             'cry' => !empty($live['cries']['latest']) ? $this->cryUrl($id, 'latest') : $entry['cry'],
             'legacy' => !empty($live['cries']['legacy']) ? $this->cryUrl($id, 'legacy') : $entry['legacy'],
             'sprite' => $live['sprites']['front_default'] ?? $entry['sprite'],
@@ -368,7 +399,15 @@ final class Catalog
     {
         [$id, $species, $name, $french, $default, $audio, $types, $height, $weight] = $row;
 
+        $models = $this->loaded['dex-models'] ??= json_decode(
+            file_get_contents($this->dataDirectory.'/dex-models.json'), true, 512, JSON_THROW_ON_ERROR
+        );
+
         return [
+            'label' => $this->dexName($name, $french, (bool) $default),
+            'kind' => $this->isMega($name) ? 'mega' : (str_ends_with($name, '-gmax') ? 'gmax' : 'normal'),
+            'models' => $models[$id] ?? null,
+            'artwork' => 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'.$id.'.png',
             'id' => $id, 'number' => $species, 'name' => $french, 'slug' => $name, 'default' => (bool) $default,
             'cry' => $audio & 1 ? $this->cryUrl($id, 'latest') : null,
             'legacy' => $audio & 2 ? $this->cryUrl($id, 'legacy') : null,

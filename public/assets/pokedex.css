@@ -1,0 +1,44 @@
+body[data-section=pokedex] {--dex-cyan:#6ae9ee;--dex-surface:#111e2a;--dex-border:#2d4f5e}
+.dex-hero {position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:210px;padding:clamp(1.2rem,4vw,3rem);overflow:hidden;border:1px solid var(--dex-border);border-radius:16px;background:radial-gradient(ellipse at 80% 15%,#225665,transparent 60%),linear-gradient(135deg,#142734,#10151f)}
+.dex-hero h1 {margin:.2em 0}
+.dex-hero img {width:min(26vw,150px);height:auto;object-fit:contain;filter:drop-shadow(0 12px 15px #0008)}
+.dex-hero p {max-width:43ch}
+.dex-eyebrow {color:var(--dex-cyan);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;font-weight:800}
+.dex-tabs {display:flex;flex-wrap:wrap;gap:.5rem;margin:20px 0}
+.dex-tabs [aria-pressed=true],.dex-model + .actions [aria-pressed=true] {border-color:var(--dex-cyan);color:var(--dex-cyan)}
+.dex-filters,.observatory-grid .dex-item,.ability-lab {background:var(--dex-surface);border-color:var(--dex-border)}
+.observatory-grid .dex-hit {background:linear-gradient(155deg,#182e3d,#101a25);padding:12px}
+.observatory-grid .dex-hit:hover {box-shadow:inset 0 0 0 1px var(--dex-cyan)}
+.observatory-grid .dex-hit .pokemon-sprite {width:min(100%,104px);height:104px;object-fit:contain}
+.dex-detail {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.dex-viewer {min-width:0;display:grid;align-content:start;gap:12px}
+.dex-model,.lab-stage {position:relative;display:grid;place-items:center;min-height:300px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#244c5d,#101723 72%);border:1px solid var(--dex-border);border-radius:14px}
+.dex-model img {width:min(75%,240px);height:240px;object-fit:contain}
+.dex-model model-viewer {position:absolute;inset:0;display:block;width:100%;height:300px}
+.dex-model model-viewer.model-loading {opacity:0;pointer-events:none}
+.model-attribution{font-size:.76rem;color:var(--muted)}
+.model-caption {font-size:.87rem}
+.dex-forms {display:grid;gap:6px}
+.dex-stat {display:grid;grid-template-columns:minmax(6rem,1fr) minmax(2rem,1fr) 2rem;gap:8px;font-size:.83rem;align-items:center}
+.dex-stat meter {width:100%;accent-color:#38c6d0}
+.ability-lab {display:grid;gap:14px;padding:clamp(12px,3vw,28px)}
+.ability-lab label {max-width:400px}
+.lab-stage canvas {display:block;width:100%;height:clamp(270px,42vw,460px);touch-action:pan-y}
+@media(max-width:650px){.dex-detail{grid-template-columns:1fr}.dex-model,.dex-model model-viewer {height:235px;min-height:235px}.dex-model img{height:195px}.dex-tabs .secondary {font-size:.86rem}}
+
+.lab-filters {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:12px}
+.lab-filters label {display:grid;gap:5px;max-width:100%;min-width:0}
+.lab-filters label:last-child {grid-column:1/-1}
+.lab-filters input,.lab-filters select,.dex-forms select {min-width:0}
+.observatory-grid .dex-item,.dex-detail .detail-copy {min-width:0;overflow-wrap:anywhere}
+@media(max-width:520px){.lab-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.lab-filters label:first-child{grid-column:1/-1}.lab-stage{min-height:270px}.dex-hero{min-height:165px}.dex-hero img{width:24vw}.dex-tabs{gap:5px}.dex-tabs .secondary{min-height:40px;padding-inline:.7rem}}
+
+.lab-roster {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lab-roster label {display:grid;gap:5px;max-width:100%;min-width:0}
+.lab-roster select {min-width:0}
+.lab-phase {position:absolute;inset:14px auto auto 14px;padding:5px 10px;border:1px solid var(--dex-border);border-radius:8px;background:#0d1722e8;color:var(--ink);font-size:.82rem;pointer-events:none}
+.lab-phase:empty,.lab-arena-status:empty {display:none}
+.lab-arena-status {color:var(--muted);font-size:.86rem}
+.lab-options {display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px}
+.lab-options label {display:inline-flex;align-items:center;gap:7px}
+.lab-options input[type=range] {width:clamp(72px,23vw,145px);accent-color:var(--dex-cyan)}

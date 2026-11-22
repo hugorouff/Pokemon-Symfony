@@ -1,0 +1,60 @@
+<header class="dex-hero">
+    <div>
+        <p class="dex-eyebrow">Observatoire Pokémon</p>
+        <h1>Pokédex 3D</h1>
+        <p>Inspecte les Pokémon sous tous les angles, compare leurs formes et observe les capacités en action.</p>
+    </div>
+    <img src="/assets/favorites/lucario.webp" width="190" height="215" alt="">
+</header>
+<nav class="dex-tabs" aria-label="Rubriques du Pokédex">
+    <button type="button" class="secondary" data-dex-mode="" aria-pressed="true">Pokémon</button>
+    <button type="button" class="secondary" data-dex-mode="mega" aria-pressed="false">Méga-Évolutions</button>
+    <button type="button" class="secondary" data-dex-mode="gmax" aria-pressed="false">Gigamax</button>
+    <button type="button" class="secondary" data-dex-mode="favorites" aria-pressed="false">Mes favoris</button>
+    <button type="button" class="secondary" data-dex-mode="lab" aria-pressed="false">Laboratoire 3D</button>
+</nav>
+<section id="dex-catalog">
+    <form class="panel filters dex-filters" id="filters">
+        <label class="wide">Pokémon<input name="q" type="search" maxlength="100" placeholder="Lucario, Rayquaza, 643…" autocomplete="off"></label>
+        <input name="mode" type="hidden" value="">
+        <label>Type<select name="type"><option value="">Tous les types</option>
+            {% for type in ['Acier','Combat','Dragon','Eau','Électrik','Fée','Feu','Glace','Insecte','Normal','Plante','Poison','Psy','Roche','Sol','Spectre','Ténèbres','Vol'] %}
+                <option>{{ type }}</option>
+            {% endfor %}
+        </select></label>
+        <label class="checkbox" id="dex-forms"><input name="forms" type="checkbox" value="1"> Inclure les formes alternatives</label>
+        <button class="primary">Rechercher</button>
+    </form>
+    <p id="status" class="status" role="status"></p>
+    <div id="results" class="dex-grid observatory-grid"></div>
+    <nav id="pager" class="pager" aria-label="Pages du Pokédex"></nav>
+</section>
+<section id="ability-lab" class="panel ability-lab" hidden aria-labelledby="lab-title">
+    <header><h2 id="lab-title">Laboratoire de capacités</h2><p>Choisis une capacité et les Pokémon de l’arène. Fais glisser la scène pour changer d’angle.</p></header>
+    <div class="lab-filters">
+        <label>Rechercher une capacité<input id="lab-search" type="search" placeholder="Hydroblast, Tonnerre, Z…" autocomplete="off"></label>
+        <label>Catégorie<select id="lab-category"><option value="">Toutes</option><option>Capacité</option><option>Capacité Z</option><option>Dynamax</option><option>Gigamax</option><option>Transformation</option></select></label>
+        <label>Type<select id="lab-type"><option value="">Tous les types</option></select></label>
+        <label>Effet à observer<select id="lab-effect"></select></label>
+    </div>
+    <div class="lab-roster">
+        <label>Lanceur<select id="lab-attacker"></select></label>
+        <label>Cible ou allié<select id="lab-target"></select></label>
+    </div>
+    <div id="lab-stage" class="lab-stage" aria-label="Arène 3D de la capacité">
+        <span id="lab-phase" class="lab-phase" aria-hidden="true"></span>
+    </div>
+    <p id="lab-arena-status" class="lab-arena-status" role="status"></p>
+    <div class="actions">
+        <button id="lab-play" class="primary" type="button">Rejouer l’effet</button>
+        <button id="lab-left" class="secondary" type="button" aria-label="Tourner la caméra à gauche">↶</button>
+        <button id="lab-right" class="secondary" type="button" aria-label="Tourner la caméra à droite">↷</button>
+    </div>
+    <div class="lab-options">
+        <label>Zoom <input id="lab-zoom" type="range" min=".85" max="1.55" step=".05" value="1"></label>
+        <label><input id="lab-cinematic" type="checkbox" checked> Caméra dynamique</label>
+        <label><input id="lab-audio" type="checkbox"> Effets sonores</label>
+    </div>
+    <p id="lab-description" role="status"></p>
+    <p class="model-attribution">Modèles via <a href="https://github.com/Pokemon-3D-api/assets">Pokémon 3D API</a>. Méga-Rayquaza par <a href="https://sketchfab.com/3d-models/rayquaza-mega-a5cadc90a46d4816902a0ad0ef368568">LunaEagle</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
+</section>

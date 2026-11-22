@@ -1,5 +1,5 @@
-{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte', 'objectifs': 'Objectifs', 'echanges': 'Échanges', 'classeur': 'Classeur'} %}
-{% set navGroups = {'Cartes': ['cartes', 'boosters', 'pokedex'], 'Collection': ['collection', 'albums', 'decks', 'objectifs', 'echanges', 'classeur']} %}
+{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte', 'objectifs': 'Objectifs', 'classeur': 'Classeur'} %}
+{% set navGroups = {'Cartes': ['cartes', 'boosters', 'pokedex'], 'Collection': ['collection', 'albums', 'decks', 'objectifs', 'classeur']} %}
 {% set packs = {
     'feu': ['Feu', 'feu'], 'eau': ['Eau', 'eau'], 'plante': ['Plante', 'plante'],
     'electrique': ['Électrique', 'elec'], 'psy': ['Psy', 'psy'], 'combat': ['Combat', 'combat'],
@@ -16,16 +16,19 @@
     <link rel="icon" href="/assets/pwa/app-192.png" sizes="192x192">
     <link rel="apple-touch-icon" href="/assets/pwa/app-180.png">
     <script type="module" src="/assets/shell.js"></script>
-    <link rel="stylesheet" href="/assets/app.css?v=dashboard">
-    {% if section == 'emulateur' %}
-        <link rel="stylesheet" href="/assets/nds-player.css?v=save-session">
-        <script type="module" src="/assets/nds-player.js?v=load-save"></script>
-    {% elseif section in ['objectifs', 'echanges', 'classeur'] %}
+    <link rel="stylesheet" href="/assets/app.css?v=home-guide">
+    {% if section == 'pokedex' %}
+        <link rel="stylesheet" href="/assets/pokedex.css?v=arena">
+        <script type="module" src="/assets/app.js?v=dex-home"></script>
+    {% elseif section == 'emulateur' %}
+        <link rel="stylesheet" href="/assets/nds-player.css?v=rom-guide">
+        <script type="module" src="/assets/nds-player.js?v=save-delete"></script>
+    {% elseif section in ['objectifs', 'classeur'] %}
         <script type="module" src="/assets/feature-pages.js"></script>
     {% elseif section == 'compte' or (section == 'accueil' and not signedIn) %}
         <script type="module" src="/assets/account.js?v=dashboard"></script>
     {% elseif section != 'accueil' %}
-        <script type="module" src="/assets/app.js?v=dashboard"></script>
+        <script type="module" src="/assets/app.js?v=booster-album"></script>
     {% endif %}
 </head>
 <body data-section="{{ section }}">
@@ -98,8 +101,18 @@
             </button>
         {% endfor %}
     </div>
-    <p id="status" class="status" role="status" tabindex="-1"></p>
-    <div id="results" class="card-grid"></div>
+    <p id="status" class="status" role="status"></p>
+    <section id="booster-album" class="panel booster-album" aria-labelledby="booster-album-title" hidden>
+        <header>
+            <div><h2 id="booster-album-title" tabindex="-1">Album du booster</h2><p id="booster-reveal-count" role="status"></p></div>
+            <div class="actions">
+                <button type="button" class="primary" id="booster-reveal-next">Révéler la suivante</button>
+                <button type="button" class="secondary" id="booster-reveal-all">Tout révéler</button>
+                <a class="secondary" href="/collection">Ma collection</a>
+            </div>
+        </header>
+        <div id="results" class="pack-album-grid"></div>
+    </section>
 {% elseif section == 'collection' %}
     <header class="page-title dashboard-title">
         <div><h1>Ma collection</h1><p>Retrouve tes cartes, tes favoris et tes doubles.</p></div>
@@ -187,16 +200,8 @@
         <div class="account-forms" id="compare-results" aria-live="polite"></div>
     </form>
 {% elseif section == 'pokedex' %}
-    <header class="page-title"><p class="eyebrow">Pokémon et formes</p><h1>Pokédex sonore</h1><p>Recherchez un Pokémon par son nom ou son numéro. Écoutez son cri actuel et la version classique quand elle est disponible.</p></header>
-    <form class="panel filters" id="filters">
-        <label class="wide">Pokémon<input name="q" type="search" maxlength="100" placeholder="Pikachu, Vipélierre, 25…" autocomplete="off"></label>
-        <label class="checkbox"><input name="forms" type="checkbox" value="1"> Inclure les formes alternatives</label>
-        <button class="primary">Rechercher</button>
-    </form>
-    <p id="status" class="status" role="status"></p>
-    <div id="results" class="dex-grid"></div>
-    <nav id="pager" class="pager" aria-label="Pages du Pokédex"></nav>
-{% elseif section in ['objectifs', 'echanges', 'classeur'] %}
+    {% include 'pokedex.html.twig' %}
+{% elseif section in ['objectifs', 'classeur'] %}
     {% include 'player-features.html.twig' %}
 {% elseif section == 'compte' %}
     {% include 'account.html.twig' %}

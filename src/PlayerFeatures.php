@@ -143,9 +143,6 @@ final class PlayerFeatures
         if (!is_array($value)) {
             throw new BadRequestHttpException('Données invalides.');
         }
-        if ($kind === 'offers') {
-            return array_values(array_unique(array_map(self::cardId(...), $this->items($value, 100))));
-        }
         if ($kind === 'shelf') {
             return [
                 'published' => ($value['published'] ?? false) === true,

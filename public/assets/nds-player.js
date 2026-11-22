@@ -1,5 +1,5 @@
 import {readFeature, writeFeature} from './player-features.js';
-import {accountState} from './account-session.js';
+import {accountRequest, accountState} from './account-session.js';
 import {button, node} from './ui.js';
 
 const $ = id => document.getElementById(id);
@@ -18,6 +18,7 @@ let canSave = false;
 let playingRom;
 let playingAccountId;
 let selectedSaveRom;
+let selectedSaveOwner;
 let saveBusy = false;
 const saveDialog = $('rom-saves');
 const saveForm = $('save-import');
@@ -232,11 +233,37 @@ async function loadSaves(rom) {
             actions.append(load);
         }
         actions.append(downloadLink('Télécharger', savesUrl(rom) + '/' + save.id, 'Télécharger ' + save.name));
+        const remove = button('Supprimer', () => deleteSave(rom, save, remove));
+        remove.setAttribute('aria-label', 'Supprimer la sauvegarde : ' + save.name);
+        actions.append(remove);
         row.append(labels, actions);
         return row;
     });
     $('save-list').replaceChildren(...rows);
     if (!rows.length) $('save-list').append(node('li', '', 'Aucune sauvegarde pour ce jeu.'));
+}
+
+async function deleteSave(rom, save, control) {
+    if (saveBusy || !window.confirm('Supprimer définitivement « ' + save.name + ' » ?')) return;
+    const owner = selectedSaveOwner;
+    control.disabled = saveBusy = true;
+    $('save-status').textContent = 'Suppression…';
+    try {
+        const session = await accountState(true);
+        if (!session.accountId || session.accountId !== owner) {
+            throw new Error('Reconnecte-toi au même compte, puis réessaie.');
+        }
+        await accountRequest(savesUrl(rom) + '/' + save.id, {}, 'DELETE', session.token);
+        if (selectedSaveRom === rom && saveDialog.open) {
+            control.closest('li').remove();
+            $('save-status').textContent = 'Sauvegarde supprimée.';
+            await loadSaves(rom);
+        }
+    } catch (error) {
+        if (selectedSaveRom === rom && saveDialog.open) $('save-status').textContent = error.message;
+    } finally {
+        control.disabled = saveBusy = false;
+    }
 }
 
 function savedGameKind(save) {
@@ -322,6 +349,7 @@ async function showSaves(rom) {
     await access;
     if (!canSave) await accountState(true).then(applyAccess).catch(() => {});
     selectedSaveRom = rom;
+    selectedSaveOwner = accountId;
     $('save-title').textContent = 'Sauvegardes · ' + rom.name;
     $('save-list').replaceChildren();
     $('save-status').textContent = '';

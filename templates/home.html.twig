@@ -28,14 +28,37 @@
     </ul>
 </section>
 {% if signedIn %}
-    <nav class="home-shortcuts" aria-label="Raccourcis de l’accueil">
+    <nav class="home-overview" aria-label="Raccourcis de l’accueil">
         {% set shortcuts = {
-            'cartes': ['Catalogue de cartes', 'Trouver une carte par nom, série ou type'],
-            'boosters': ['Boosters', 'Ouvrir un booster et compléter ta collection'],
-            'pokedex': ['Pokédex sonore', 'Rechercher un Pokémon et écouter son cri']
+            'Cartes et collection': [
+                ['cartes', 'Catalogue de cartes', 'Recherche des cartes en français ou en anglais, par nom, série ou type.'],
+                ['boosters', 'Boosters', 'Ouvre un booster, révèle ses cinq cartes dans l’album interactif et retrouve-les dans ta collection.'],
+                ['collection', 'Ma collection', 'Gère tes exemplaires, favoris et doubles. Importe ou exporte ta collection en JSON.'],
+                ['albums', 'Albums', 'Suis ta progression par série, repère les cartes manquantes et ajoute-les à tes recherches.'],
+                ['decks', 'Decks', 'Compose et synchronise tes decks de 60 cartes, exporte-les et compare leurs mains de départ.'],
+                ['objectifs', 'Objectifs', 'Retrouve les cartes que tu recherches et suis tes défis de collection.'],
+                ['classeur', 'Classeur', 'Expose jusqu’à neuf cartes et partage ton classeur par lien.']
+            ],
+            'Pokédex et capacités': [
+                ['pokedex', 'Pokédex 3D', 'Observe les modèles disponibles à 360°, compare les formes Méga et Gigamax, écoute leurs cris et enregistre tes favoris.'],
+                ['pokedex', 'Laboratoire 3D', 'Explore les 971 entrées de capacités en arène, dont les capacités Z et Gigamax, et rejoue les scènes de transformation.', {vue: 'laboratoire'}]
+            ],
+            'Jeux Nintendo DS et compte': [
+                ['emulateur', 'Mes ROMs', 'Joue dans le navigateur, reprends ta partie, gère tes sauvegardes, synchronise les commandes et tiens ton carnet d’aventure.'],
+                ['compte', 'Mon compte', 'Gère ta connexion et retrouve tes données personnelles. Pour accéder au site comme à une application, utilise « Installer l’appli » dans l’en-tête.']
+            ]
         } %}
-        {% for key, shortcut in shortcuts %}
-            <a href="{{ path('section', {section: key}) }}"><strong>{{ shortcut[0] }}</strong><span>{{ shortcut[1] }}</span><span class="shortcut-arrow" aria-hidden="true"></span></a>
+        {% for group, links in shortcuts %}
+            <section aria-labelledby="home-group-{{ loop.index }}">
+                <h2 id="home-group-{{ loop.index }}">{{ group }}</h2>
+                <div class="home-shortcuts">
+                    {% for shortcut in links %}
+                        <a href="{{ path('section', {section: shortcut[0]}|merge(shortcut[3]|default({}))) }}">
+                            <strong>{{ shortcut[1] }}</strong><span>{{ shortcut[2] }}</span><span class="shortcut-arrow" aria-hidden="true"></span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
         {% endfor %}
     </nav>
 {% else %}

@@ -30,3 +30,17 @@
 .rom-tabs button{max-width:100%;overflow-wrap:anywhere}
 
 #checkpoint-recovery{margin-bottom:12px}
+
+@media(max-width:700px) {
+    .nds-player-top {align-items:flex-start;flex-wrap:wrap}
+    .nds-player-top .actions,.rom-row .actions {width:100%}
+    .nds-player-top .actions>button,.rom-row .actions>button {min-width:0;overflow-wrap:anywhere}
+    .nds-stage {min-height:300px}
+}
+
+.rom-help{margin-block:16px;padding:clamp(12px,3vw,20px);min-width:0}
+.rom-help summary{cursor:pointer;font-weight:750}
+.rom-help p{margin-top:8px}
+.rom-help ol{margin:10px 0 0;padding-inline-start:1.3em}
+.rom-help li+li{margin-top:.45em}
+.rom-help .actions{margin-top:12px}

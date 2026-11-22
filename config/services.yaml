@@ -52,8 +52,6 @@ services:
 
     App\PlayerFeatures: ~
 
-    App\CardTrades: ~
-
     App\PlayerFeaturesController:
         tags: ['controller.service_arguments']
 

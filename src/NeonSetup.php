@@ -105,21 +105,6 @@ final class NeonSetup
                     public_token varchar(32) UNIQUE,
                     PRIMARY KEY (owner_id, kind)
                 );
-                CREATE TABLE IF NOT EXISTS card_trades (
-                    id varchar(32) PRIMARY KEY,
-                    proposer varchar(32) NOT NULL REFERENCES rom_accounts(id) ON DELETE CASCADE,
-                    recipient varchar(32) NOT NULL REFERENCES rom_accounts(id) ON DELETE CASCADE,
-                    give_card varchar(103) NOT NULL,
-                    take_card varchar(103) NOT NULL,
-                    status varchar(10) NOT NULL DEFAULT 'pending',
-                    created_at timestamptz NOT NULL DEFAULT now(),
-                    decided_at timestamptz,
-                    CHECK (proposer <> recipient AND give_card <> take_card),
-                    CHECK (status IN ('pending', 'accepted', 'rejected', 'cancelled'))
-                );
-                CREATE INDEX IF NOT EXISTS card_trades_proposer_idx ON card_trades (proposer, created_at);
-                CREATE INDEX IF NOT EXISTS card_trades_recipient_idx ON card_trades (recipient, created_at);
-                CREATE UNIQUE INDEX IF NOT EXISTS card_trades_pending_idx ON card_trades (proposer, recipient, give_card, take_card) WHERE status = 'pending';
                 SQL);
             $io->success('PostgreSQL accessible. Tables des ROMs, sauvegardes, comptes, collections et fonctionnalités joueur disponibles.');
             if (!$schemaOnly && $this->cloud->enabled()) {

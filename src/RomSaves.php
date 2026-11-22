@@ -84,6 +84,14 @@ final class RomSaves
         throw new NotFoundHttpException('Sauvegarde introuvable.');
     }
 
+    public function delete(string $rom, string $id): void
+    {
+        [$file] = $this->file($rom, $id);
+        if (!@unlink($file)) {
+            throw new HttpException(500, 'La sauvegarde n’a pas pu être supprimée.');
+        }
+    }
+
     private function saveDirectory(string $rom): string
     {
         return $this->directory.'/.sauvegardes/'.$rom;

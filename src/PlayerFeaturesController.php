@@ -12,12 +12,11 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class PlayerFeaturesController
 {
-    private const KIND = 'decks|wishlist|offers|shelf|(?:journal|prefs)-[a-f0-9]{64}';
+    private const KIND = 'decks|wishlist|shelf|(?:journal|prefs)-[a-f0-9]{64}';
     private const TOKEN = '[a-f0-9]{32}';
 
     public function __construct(
         private readonly PlayerFeatures $features,
-        private readonly CardTrades $trades,
         private readonly PostgresRomLibrary $databaseRoms,
         private readonly RomLibrary $localRoms,
         private readonly CloudRomStorage $bucket,
@@ -56,41 +55,6 @@ final class PlayerFeaturesController
     public function shelf(string $token): JsonResponse
     {
         return $this->respond(fn () => ['data' => $this->features->shelf($token)]);
-    }
-
-    #[Route('/api/trades', defaults: ['_private_account' => true], methods: ['GET', 'POST'])]
-    public function trade(Request $request): JsonResponse
-    {
-        return $this->respond(function () use ($request) {
-            $owner = $this->owner($request);
-            if ($request->isMethod('GET')) {
-                return ['data' => $this->trades->list($owner), 'offers' => $this->trades->offers($owner)];
-            }
-            $payload = $this->body($request);
-            $friend = $payload['friend'] ?? null;
-            if (!is_string($friend) || !preg_match('/^[a-f0-9]{32}$/D', $friend)) {
-                throw new BadRequestHttpException('Code ami invalide.');
-            }
-            $this->trades->propose($owner, $friend, PlayerFeatures::cardId($payload['give'] ?? null), PlayerFeatures::cardId($payload['take'] ?? null));
-
-            return ['ok' => true];
-        });
-    }
-
-    #[Route('/api/trades/friend/{code}', requirements: ['code' => self::TOKEN], defaults: ['_private_account' => true], methods: ['GET'])]
-    public function friend(Request $request, string $code): JsonResponse
-    {
-        return $this->respond(fn () => $this->trades->profile($this->owner($request), $code));
-    }
-
-    #[Route('/api/trades/{id}/{action}', requirements: ['id' => self::TOKEN, 'action' => 'accept|reject|cancel'], defaults: ['_private_account' => true], methods: ['POST'])]
-    public function decide(Request $request, string $id, string $action): JsonResponse
-    {
-        return $this->respond(function () use ($request, $id, $action) {
-            $this->trades->decide($this->owner($request), $id, $action);
-
-            return ['ok' => true];
-        });
     }
 
     private function owner(Request $request): string

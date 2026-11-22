@@ -55,8 +55,15 @@ L’application s’ouvre sur la connexion et l’inscription. Une connexion est
 
 - Dans **Albums**, passez sur les séries proches d’être complétées et ajoutez des cartes manquantes à vos recherches. La page **Objectifs** rassemble ces cartes et suit les défis des dix cartes Eau distinctes et des 50 % d’une série choisie.
 - Dans **Decks**, sélectionnez deux decks et une carte clé dans chacun. La comparaison affiche une main de sept cartes par deck, la fréquence sur 1 000 tirages et la probabilité théorique, sans règles de combat ni mulligan.
-- Dans **Échanges**, cochez les doubles que vous proposez, enregistrez-les et partagez votre code ami. Le destinataire voit vos offres et recherches avec ce code. Un échange transfère un exemplaire dans chaque sens après acceptation du destinataire, si les deux cartes sont toujours disponibles en double.
 - Dans **Classeur**, sélectionnez jusqu’à neuf cartes puis activez le partage. Le lien affiche uniquement les cartes choisies aux joueurs connectés, sans les quantités ni les autres données du compte.
+
+## Pokédex 3D et boosters
+
+Les onglets **Méga-Évolutions** et **Gigamax** regroupent les formes correspondantes. Sur une fiche, faites glisser le modèle pour tourner et pincez ou utilisez la molette pour zoomer. Sélectionnez **Chromatique** ou **Animation** quand le modèle le permet. Les favoris du Pokédex sont enregistrés dans le navigateur. Les modèles chargent à la demande depuis le [catalogue Pokémon 3D API](https://github.com/Pokemon-3D-api/assets). Les fiches affichent une illustration ou un sprite quand aucun modèle compatible ne se charge.
+
+Le **Laboratoire 3D** propose le catalogue [PokéAPI](https://github.com/PokeAPI/pokeapi/tree/master/data/v2/csv), filtrable par nom, catégorie et type, les [33 capacités Gigamax](https://www.pokepedia.fr/Gigamax) et des scènes de transformation. Toutes les entrées sont jouables dans une arène avec deux modèles 3D au choix. La mise en scène calcule les durées, la cible, l’approche des attaques de contact, les coups multiples et les réactions. La caméra dynamique et les sons synthétisés sont réglables. Les séquences utilisent une chorégraphie procédurale et des effets WebGL originaux communs à plusieurs capacités. Les modèles locaux de l’arène sont chargés à la demande. Le modèle Méga-Rayquaza est crédité à LunaEagle ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+
+Les cartes d’un booster ouvert sont ajoutées à **Ma collection**. Dans l’album du booster, sélectionnez une carte face cachée, révélez la suivante ou révélez-les toutes. Une carte révélée ouvre sa fiche détaillée.
 
 ## ROMs et sauvegardes personnelles
 
@@ -66,7 +73,7 @@ Les jeux Nintendo DS peuvent être fournis en `.nds` ou dans un ZIP classique co
 
 Cliquez dans l’écran du jeu si le clavier commande la page. Dans l’émulateur DS, modifiez vos options d’affichage ou vos commandes de clavier et de manette puis utilisez **Synchroniser les réglages**. L’application les charge à la prochaine ouverture du même jeu et du même moteur avec le même compte.
 
-Dans chaque onglet DS, le **Carnet d’aventure** permet de noter badges, équipe, objectif et notes. Lorsque le jeu a démarré, **Sauvegarder en ligne** remplace le dernier point de reprise de ce jeu pour votre compte. Retrouvez-le via **Reprendre ma partie** sur un autre appareil, avec le moteur enregistré. Les points de reprise sont limités à 16 Mio. Dans **Sauvegardes**, importez un fichier puis utilisez **Charger dans le jeu**. Avec une sauvegarde Nintendo DS (.sav, .dsv, .srm ou .save), choisissez ensuite **Continuer** dans le jeu. Un fichier .state doit provenir du même jeu et du même moteur DeSmuME. Les autres formats stockés restent disponibles au téléchargement. Le nom interne du jeu est désormais séparé par moteur et par compte. Pour conserver une ancienne sauvegarde restée uniquement dans le lecteur du navigateur, exportez-la depuis l’ancienne version avant de la charger dans le lecteur mis à jour.
+Dans chaque onglet DS, le **Carnet d’aventure** permet de noter badges, équipe, objectif et notes. Lorsque le jeu a démarré, **Sauvegarder en ligne** remplace le dernier point de reprise de ce jeu pour votre compte. Retrouvez-le via **Reprendre ma partie** sur un autre appareil, avec le moteur enregistré. Les points de reprise sont limités à 16 Mio. Dans **Sauvegardes**, choisissez **Supprimer** pour effacer un fichier ou un point de reprise de votre compte. Pour utiliser une sauvegarde externe, importez un fichier puis utilisez **Charger dans le jeu**. Avec une sauvegarde Nintendo DS (.sav, .dsv, .srm ou .save), choisissez ensuite **Continuer** dans le jeu. Un fichier .state doit provenir du même jeu et du même moteur DeSmuME. Les autres formats stockés restent disponibles au téléchargement. Le nom interne du jeu est désormais séparé par moteur et par compte. Pour conserver une ancienne sauvegarde restée uniquement dans le lecteur du navigateur, exportez-la depuis l’ancienne version avant de la charger dans le lecteur mis à jour.
 
 ### Stocker les ROMs dans PostgreSQL (Neon)
 

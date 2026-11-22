@@ -12,6 +12,15 @@
     </div>
     <div id="rom-tabs" class="rom-tabs" role="tablist" aria-label="Jeux"></div>
     <div id="rom-game"></div>
+    <details class="panel rom-help" open>
+        <summary>Sauvegarder une partie et la récupérer</summary>
+        <p>Pendant une partie, clique sur <strong>Sauvegarder en ligne</strong>. Lorsque l’enregistrement est confirmé, retrouve le point de reprise via <strong>Reprendre ma partie</strong>.</p>
+        <ol>
+            <li>Si l’envoi échoue, garde le jeu ouvert et clique sur <strong>Télécharger le point de reprise</strong>. Garde le fichier <code>.state</code> sur ton appareil.</li>
+            <li>Quand l’accès en ligne est rétabli, ouvre <strong>Mes ROMs</strong>, sélectionne le même jeu et va dans <strong>Sauvegardes</strong>.</li>
+            <li>Choisis le fichier, clique sur <strong>Importer la sauvegarde</strong>, puis sur <strong>Charger dans le jeu</strong> à côté du fichier. Un fichier <code>.state</code> doit être chargé avec le même moteur DeSmuME que celui utilisé pour le créer.</li>
+        </ol>
+    </details>
 </section>
 <p id="status" class="status" role="status" aria-live="polite" hidden></p>
 <section id="player" hidden aria-label="Émulateur">
@@ -24,9 +33,13 @@
             <button class="secondary" id="change-rom" type="button">Mes ROMs</button>
         </div>
     </div>
-    <div id="checkpoint-recovery" class="actions" hidden>
-        <a id="checkpoint-login" class="secondary" href="/compte" target="_blank" rel="noopener" hidden>Se reconnecter dans un autre onglet</a>
-        <button id="checkpoint-download" class="secondary" type="button">Télécharger le point de reprise</button>
+    <div id="checkpoint-recovery" class="panel rom-help" hidden>
+        <strong>Garder une copie de ta partie</strong>
+        <p>Garde le jeu ouvert le temps de télécharger le fichier. Plus tard, dans <strong>Sauvegardes</strong> du même jeu, importe ce fichier et clique sur <strong>Charger dans le jeu</strong>.</p>
+        <div class="actions">
+            <button id="checkpoint-download" class="primary" type="button">Télécharger le point de reprise</button>
+            <a id="checkpoint-login" class="secondary" href="/compte" target="_blank" rel="noopener" hidden>Se reconnecter dans un autre onglet</a>
+        </div>
     </div>
     <div class="nds-stage"><div id="game" aria-label="Écran du jeu"></div></div>
     <p id="player-preferences-status" class="status" role="status"></p>
@@ -40,7 +53,7 @@
         <label for="save-file">Fichier de sauvegarde</label>
         <input id="save-file" name="save" type="file" aria-describedby="save-import-help" required>
         <button class="primary" type="submit">Importer la sauvegarde</button>
-        <small id="save-import-help">Pour jouer sur Nintendo DS, importe un fichier .sav, .dsv, .srm ou .state, puis choisis « Charger dans le jeu ».</small>
+        <small id="save-import-help">Pour reprendre une partie, importe ici ton point de reprise <code>.state</code> ou ta sauvegarde <code>.sav</code>, <code>.dsv</code> ou <code>.srm</code>, puis choisis « Charger dans le jeu ». Avec une sauvegarde cartouche, choisis ensuite « Continuer » dans le menu du jeu.</small>
     </form>
     <p id="save-status" class="status" role="status"></p>
     <ul id="save-list" class="rom-list"></ul>

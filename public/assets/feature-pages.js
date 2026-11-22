@@ -1,4 +1,4 @@
-import {accountRequest, accountState} from './account-session.js';
+import {accountState} from './account-session.js';
 import {getCollection} from './collection.js';
 import {readFeature, toggleWishlist, writeFeature} from './player-features.js';
 import {api, button, node} from './ui.js';
@@ -61,89 +61,6 @@ async function objectives() {
     renderGoal();
 }
 
-async function trading(state) {
-    const [collection, initial, wishlist] = await Promise.all([getCollection(), readFeature('offers'), readFeature('wishlist')]);
-    const ownWishes = new Set(wishlist.data.map(card => card.id));
-    const picker = $('offer-picker');
-    picker.replaceChildren(...collection.filter(card => card.quantity > 1).map(cardOption));
-    for (const option of picker.options) option.selected = initial.data.includes(option.value);
-    $('friend-code').value = state.accountId;
-
-    const proposal = $('propose-trade');
-    const friendForm = $('find-friend');
-    let friend;
-    let friendProfile;
-    let mine = [];
-    async function refresh() {
-        const {data, offers} = await api('/api/trades');
-        mine = offers;
-        $('trade-list').replaceChildren(...data.map(trade => {
-            const outgoing = trade.proposer === state.accountId;
-            const give = outgoing ? trade.give_name : trade.take_name;
-            const take = outgoing ? trade.take_name : trade.give_name;
-            const labels = {pending: 'En attente', accepted: 'Acceptée', rejected: 'Refusée', cancelled: 'Annulée'};
-            const item = node('li', 'workbench-row');
-            item.append(node('span', '', `${outgoing ? 'Envoyée' : 'Reçue'} · ${give} ↔ ${take} · ${labels[trade.status]}`));
-            if (trade.status === 'pending') {
-                const actions = node('div', 'actions');
-                for (const [action, label] of (outgoing ? [['cancel', 'Annuler']] : [['accept', 'Accepter'], ['reject', 'Refuser']])) {
-                    const control = button(label, () => act(control, async () => {
-                        await accountRequest('/api/trades/' + trade.id + '/' + action, {}, 'POST', state.token);
-                        await refresh();
-                        if (friend) await loadFriend(friend);
-                        message(action === 'accept' ? 'Échange effectué. Les deux collections ont été mises à jour.' : 'Proposition mise à jour.');
-                    }));
-                    actions.append(control);
-                }
-                item.append(actions);
-            }
-            return item;
-        }));
-        if (!data.length) $('trade-list').append(node('li', '', 'Aucune proposition.'));
-        if (friendProfile) renderMatch();
-    }
-    function renderMatch() {
-        const friendWishes = new Set(friendProfile.wishes.map(card => card.id));
-        const soughtHere = mine.filter(card => friendWishes.has(card.id));
-        const soughtThere = friendProfile.offers.filter(card => ownWishes.has(card.id));
-        const match = $('trade-match');
-        match.hidden = false;
-        match.textContent = `Cartes que tu recherches chez ton ami · ${soughtThere.map(card => card.name).join(', ') || 'aucune'}. Cartes qu’il recherche chez toi · ${soughtHere.map(card => card.name).join(', ') || 'aucune'}.`;
-        proposal.elements.give.replaceChildren(...mine.map(cardOption));
-        proposal.elements.take.replaceChildren(...friendProfile.offers.map(cardOption));
-        if (soughtHere[0]) proposal.elements.give.value = soughtHere[0].id;
-        if (soughtThere[0]) proposal.elements.take.value = soughtThere[0].id;
-        proposal.hidden = !mine.length || !friendProfile.offers.length;
-    }
-    async function loadFriend(code) {
-        friendProfile = null;
-        friend = null;
-        proposal.hidden = true;
-        $('trade-match').hidden = true;
-        friendProfile = await api('/api/trades/friend/' + encodeURIComponent(code));
-        friend = code;
-        renderMatch();
-    }
-    $('save-offers').addEventListener('click', event => act(event.currentTarget, async () => {
-        await writeFeature('offers', await readFeature('offers'), selected(picker));
-        await refresh();
-        message('Doubles disponibles mis à jour.');
-    }));
-    friendForm.addEventListener('submit', event => {
-        event.preventDefault();
-        act(friendForm.querySelector('button'), () => loadFriend(friendForm.elements.code.value.trim()));
-    });
-    proposal.addEventListener('submit', event => {
-        event.preventDefault();
-        act(proposal.querySelector('button'), async () => {
-            await accountRequest('/api/trades', {}, 'POST', state.token, {friend, give: proposal.elements.give.value, take: proposal.elements.take.value});
-            await refresh();
-            message('Proposition envoyée. Ton ami doit l’accepter pour transférer les cartes.');
-        });
-    });
-    await refresh();
-}
-
 function renderShelf(cards) {
     $('display-shelf').replaceChildren(...cards.map(card => {
         const box = node('article', 'panel shelf-card');
@@ -201,7 +118,7 @@ async function start() {
         $('feature-login').hidden = false;
         return;
     }
-    await {objectifs: objectives, echanges: trading, classeur: shelfEditor}[section](state);
+    await {objectifs: objectives, classeur: shelfEditor}[section](state);
     $('feature-content').hidden = false;
 }
 start().catch(error => message(error.message, true));

@@ -21,7 +21,7 @@ final class Controller
     ) {}
 
     #[Route('/', name: 'home', defaults: ['section' => 'accueil', '_public_auth' => true], methods: ['GET'])]
-    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte|objectifs|echanges|classeur'], methods: ['GET'])]
+    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte|objectifs|classeur'], methods: ['GET'])]
     public function page(string $section, Request $request, RomAccess $access, RomAccounts $accounts): Response
     {
         $owner = $request->attributes->get('rom.owner') ?? $access->owner($request);
@@ -162,6 +162,9 @@ final class Controller
             $request->query->getBoolean('forms'),
             $page,
             $size,
+            $request->query->getString('mode'),
+            $request->query->getString('type'),
+            array_fill_keys(explode(',', mb_substr($request->query->getString('favorites'), 0, 2400)), true),
         ));
     }
 

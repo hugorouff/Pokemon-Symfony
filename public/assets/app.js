@@ -1,6 +1,7 @@
 import {accountState} from './account-session.js';
 import {changeCard, drawBooster, getCollection, importCollection, importLocalCollection, remainingBoosters, storeCards} from './collection.js';
 import {api, button, clean, collator, fmt, node} from './ui.js';
+import {dexFavorites, favoriteControl, pokemonViewer, statsPanel} from './pokedex.js';
 
 const section = document.body.dataset.section;
 const results = document.querySelector('#results');
@@ -70,7 +71,7 @@ function sprite(entry) {
 }
 
 function pokemonName(entry) {
-    return entry.default ? entry.name : `${entry.name} · ${entry.slug}`;
+    return entry.label || entry.name;
 }
 
 function openDetail(content) {
@@ -84,18 +85,32 @@ function openDetail(content) {
 
 async function showPokemon(entry) {
     const copy = node('div', 'detail-copy');
-    const layout = node('div', 'detail-grid');
+    const layout = node('div', 'dex-detail');
     const metadata = data => data.types?.length ? `${data.types.join(' · ')} · ${fmt.format(data.height)} m · ${fmt.format(data.weight)} kg` : '';
     const extra = node('p', '', metadata(entry));
     const cries = node('div');
     cries.append(audioControls(entry));
     copy.append(node('small', '', 'N° ' + entry.number), node('h2', '', pokemonName(entry)), cries, extra);
-    layout.append(sprite(entry), copy);
+    copy.append(favoriteControl(entry));
+    layout.append(pokemonViewer(entry), copy);
     const request = openDetail(layout);
     try {
         const data = await api('/api/pokemon/' + entry.id, {}, {signal: request.signal});
         if (data.types?.length) extra.textContent = metadata(data);
         if (data.cry !== entry.cry || data.legacy !== entry.legacy) cries.replaceChildren(audioControls(data));
+        if (data.forms?.length) {
+            const label = node('label', 'dex-forms', 'Comparer les formes');
+            const select = node('select');
+            const forms = [data, ...data.forms];
+            select.append(...forms.map(form => new Option(pokemonName(form), form.id)));
+            select.addEventListener('change', () => {
+                const form = forms.find(item => item.id === Number(select.value));
+                if (form) showPokemon(form);
+            });
+            label.append(select);
+            copy.append(label);
+        }
+        copy.append(statsPanel(data));
     } catch (error) {
         if (error.name !== 'AbortError' && !extra.textContent) extra.textContent = 'Détails momentanément indisponibles.';
     }
@@ -203,7 +218,8 @@ function dexGrid(entries) {
         const box = node('article', 'panel dex-item');
         const hit = button('', () => showPokemon(entry), 'dex-hit');
         const text = node('span', 'card-caption');
-        text.append(node('small', '', 'N° ' + entry.number), node('strong', '', pokemonName(entry)));
+        text.append(node('small', '', 'N° ' + entry.number + (entry.models ? ' · 3D' : '')), node('strong', '', pokemonName(entry)));
+        if (entry.types?.length) text.append(node('small', '', entry.types.join(' · ')));
         hit.append(sprite(entry), text);
         box.append(hit, audioControls(entry));
         fragment.append(box);
@@ -245,6 +261,7 @@ async function loadList(page = 1) {
     listRequest = request;
     const query = {...params(), page};
     const dex = section === 'pokedex';
+    if (dex && query.mode === 'favorites') query.favorites = dexFavorites().join(',');
     message('Chargement…');
     try {
         const path = dex ? '/api/pokemon' : '/api/cards';
@@ -284,20 +301,73 @@ function showBoosterCount(pack, count) {
         ? '1 ouverture restante' : `${count} ouvertures restantes`;
 }
 
+function showBoosterAlbum(data, lang, packName) {
+    const album = document.querySelector('#booster-album');
+    const heading = document.querySelector('#booster-album-title');
+    const count = document.querySelector('#booster-reveal-count');
+    const next = document.querySelector('#booster-reveal-next');
+    const all = document.querySelector('#booster-reveal-all');
+    const revealed = new Set();
+    heading.textContent = 'Album · ' + packName;
+    const slots = data.map((card, index) => {
+        const slot = node('article', 'pack-slot');
+        const cover = button(String(index + 1), () => reveal(index, true), 'pack-cover');
+        cover.setAttribute('aria-label', 'Révéler la carte ' + (index + 1));
+        slot.append(cover);
+        return slot;
+    });
+    function refresh() {
+        count.textContent = revealed.size + ' / ' + data.length + ' cartes révélées';
+        if (revealed.size === data.length) {
+            next.disabled = true;
+            all.disabled = true;
+        }
+    }
+    function reveal(index, focus = false) {
+        if (index < 0 || revealed.has(index)) return;
+        revealed.add(index);
+        const card = data[index];
+        const face = button('', () => showCard(card, lang), 'pack-face');
+        face.setAttribute('aria-label', 'Voir la carte : ' + card.name);
+        face.append(poster(card), node('strong', '', card.name), node('small', '', card.rarity || card.set || ''));
+        slots[index].replaceChildren(face);
+        if (focus) face.focus({preventScroll: true});
+        refresh();
+    }
+    results.replaceChildren(...slots);
+    next.disabled = all.disabled = false;
+    next.onclick = () => {
+        reveal(data.findIndex((_, index) => !revealed.has(index)));
+        if (next.disabled) heading.focus({preventScroll: true});
+    };
+    all.onclick = () => {
+        data.forEach((_, index) => reveal(index));
+        heading.focus({preventScroll: true});
+    };
+    refresh();
+    album.hidden = false;
+    heading.focus({preventScroll: true});
+    const position = heading.getBoundingClientRect();
+    if (position.top < 0 || position.bottom > window.innerHeight - 80) {
+        album.scrollIntoView({
+            block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+    }
+}
+
 async function openBooster(pack, packs) {
     const type = pack.dataset.booster;
     const query = {...params(), type: type === 'random' ? '' : type};
     const controls = [...filters.elements, ...packs];
     controls.forEach(control => { control.disabled = true; });
     message('Ouverture du booster…');
-    status.focus();
     try {
         const available = await remainingBoosters(type);
         showBoosterCount(pack, available);
         if (available <= 0) throw new Error('La limite quotidienne de ce booster est atteinte.');
         const {data, remaining} = await drawBooster(query, type);
         showBoosterCount(pack, remaining);
-        cardsGrid(data, query.lang);
+        showBoosterAlbum(data, query.lang, pack.querySelector('.booster-name').textContent);
         message(`5 cartes ajoutées à la collection. Ouvertures restantes aujourd’hui · ${remaining}`);
     } catch (error) {
         message(error.message || 'Impossible de sauvegarder le booster.', true);
@@ -363,6 +433,10 @@ async function showCollection() {
 document.querySelector('#close-detail').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => {
     detailRequest?.abort();
+    if (section === 'pokedex') {
+        detail.replaceChildren();
+        if (filters.elements.mode.value === 'favorites') loadList();
+    }
     currentAudio?.pause();
 });
 
@@ -377,8 +451,37 @@ if (section === 'cartes' || section === 'boosters') {
     });
 }
 
+if (section === 'pokedex') {
+    const tabs = [...document.querySelectorAll('[data-dex-mode]')];
+    const catalog = document.querySelector('#dex-catalog');
+    const lab = document.querySelector('#ability-lab');
+    let initialized;
+    for (const tab of tabs) {
+        tab.addEventListener('click', () => {
+            const mode = tab.dataset.dexMode;
+            tabs.forEach(control => control.setAttribute('aria-pressed', String(control === tab)));
+            catalog.hidden = mode === 'lab';
+            lab.hidden = !catalog.hidden;
+            if (mode === 'lab') {
+                listRequest?.abort();
+                initialized ??= import('./ability-lab.js?v=arena').then(module => module.startLab()).catch(() => {
+                    document.querySelector('#lab-description').textContent = 'Le laboratoire 3D est indisponible.';
+                });
+                return;
+            }
+            filters.elements.mode.value = mode;
+            document.querySelector('#dex-forms').hidden = mode !== '';
+            loadList();
+        });
+    }
+}
+
 if (section === 'cartes' || section === 'pokedex') {
-    loadList();
+    if (section === 'pokedex' && new URLSearchParams(location.search).get('vue') === 'laboratoire') {
+        document.querySelector('[data-dex-mode="lab"]').click();
+    } else {
+        loadList();
+    }
     filters.addEventListener('submit', event => {
         event.preventDefault();
         loadList();

@@ -97,6 +97,12 @@ final class CloudRomStorage
         return $this->sign('GetObject', $key, $options, '+30 minutes');
     }
 
+    public function deleteSave(string $rom, string $id): void
+    {
+        $key = $this->find($this->prefix().'saves/'.$rom.'/'.$id.'/');
+        $this->s3()->deleteObject($this->bucket() + ['Key' => $key]);
+    }
+
     public function begin(SessionInterface $session, string $name, int $size, ?string $romId): array
     {
         if (!$this->enabled()) {

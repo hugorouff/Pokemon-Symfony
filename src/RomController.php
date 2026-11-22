@@ -135,6 +135,23 @@ final class RomController
         });
     }
 
+    #[Route('/{id}/sauvegardes/{save}', requirements: ['id' => '[a-f0-9]{64}', 'save' => '[a-f0-9]{32}'], defaults: ['_private_rom_library' => true], methods: ['DELETE'])]
+    public function deleteSave(string $id, string $save, Request $request): Response
+    {
+        return $this->respond(function () use ($id, $save, $request) {
+            $this->assertRom($id);
+            if ($this->databaseSaves->enabled()) {
+                $this->databaseSaves->delete($id, $request->attributes->getString('rom.owner'), $save);
+            } elseif ($this->usesBucket()) {
+                $this->cloud->deleteSave($id, $save);
+            } else {
+                $this->saves->delete($id, $save);
+            }
+
+            return new JsonResponse(['ok' => true], 200, self::HEADERS);
+        });
+    }
+
     #[Route('/transferts', defaults: ['_private_rom_library' => true], methods: ['POST'])]
     public function beginUpload(Request $request): Response
     {
