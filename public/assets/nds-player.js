@@ -6,9 +6,8 @@ const tabs = $('rom-tabs');
 const gamePanel = $('rom-game');
 const romCache = 'atlas-roms-v1';
 const chunkSize = 8 * 1024 * 1024;
-const infiniteFusion = {id: 'infinite-fusion', name: 'Pokémon Infinite Fusion'};
 let selectedGame;
-let library = [infiniteFusion];
+let library = [];
 let cloudStorage = false;
 let cloudSaves = false;
 let csrfToken = '';
@@ -135,7 +134,7 @@ async function loadLibrary() {
     const {data, cloud, postgres, cloudSaves: uploadSavesToBucket} = await readJson(await fetch('/api/roms'));
     cloudStorage = cloud;
     cloudSaves = uploadSavesToBucket;
-    library = [...data, infiniteFusion];
+    library = data;
     $('rom-filters').hidden = !data.some(rom => rom.core === 'desmume');
     $('rom-totals').textContent = `${data.length} jeu(x) · ${sizeLabel(data.reduce((total, rom) => total + rom.size, 0))} de ROMs · ${postgres ? 'PostgreSQL et fichiers locaux' : cloudStorage ? 'Stockage en ligne' : 'Stockage local'}`;
     renderTabs();
@@ -149,6 +148,12 @@ function renderTabs() {
         tab.setAttribute('aria-controls', gamePanel.id);
         return tab;
     }));
+    if (library.length === 0) {
+        gamePanel.removeAttribute('role');
+        gamePanel.removeAttribute('aria-labelledby');
+        gamePanel.replaceChildren(node('p', '', 'Aucune ROM disponible.'));
+        return;
+    }
     selectGame(Math.max(0, library.findIndex(rom => rom.id === selectedGame)), false, false);
 }
 
@@ -166,10 +171,6 @@ function selectGame(index, focus = false, remember = true) {
     }
     gamePanel.setAttribute('role', 'tabpanel');
     gamePanel.setAttribute('aria-labelledby', 'rom-tab-' + index);
-    if (rom === infiniteFusion) {
-        gamePanel.replaceChildren($('infinite-fusion-panel').content.cloneNode(true));
-        return;
-    }
     const labels = node('div', 'rom-meta');
     labels.append(node('strong', '', displayName(rom)),
         node('small', '', `${rom.system} · ${sizeLabel(rom.size)}${rom.core ? '' : ' · Téléchargement'}`));
@@ -199,6 +200,7 @@ async function applyAccess(data) {
     $('rom-email').disabled = !data.accounts;
     $('rom-email').required = data.accounts;
     $('rom-access').hidden = data.authenticated;
+    $('selection').hidden = !data.authenticated;
     $('rom-toolbar').hidden = !data.authenticated;
     accessForm.hidden = !data.configured;
     $('rom-setup').hidden = data.configured;
@@ -486,7 +488,6 @@ $('change-rom').addEventListener('click', () => {
 window.addEventListener('pagehide', event => {
     if (gameUrl && !event.persisted) URL.revokeObjectURL(gameUrl);
 });
-renderTabs();
 fetch('/api/rom-access').then(readJson).then(applyAccess).catch(error => {
     status(error instanceof TypeError ? 'Impossible de joindre le serveur de la bibliothèque.' : error.message, true);
 });

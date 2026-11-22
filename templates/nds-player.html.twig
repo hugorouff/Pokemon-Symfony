@@ -1,6 +1,6 @@
 <header class="page-title">
     <h1>Mes ROMs</h1>
-    <p>Retrouvez vos ROMs privées et vos jeux installés sur PC.</p>
+    <p>Retrouvez vos ROMs et leurs sauvegardes.</p>
 </header>
 <section id="rom-access" class="panel nds-selection" aria-label="Accès privé">
     <form id="rom-login" hidden>
@@ -12,7 +12,7 @@
     </form>
     <p id="rom-setup" hidden>Pour créer le mot de passe, démarrez avec <code>LANCER.bat</code> ou lancez <code>php bin/console app:roms:password</code> sur le serveur.</p>
 </section>
-<section id="selection" aria-label="Bibliothèque de jeux">
+<section id="selection" aria-label="Bibliothèque de jeux" hidden>
     <div id="rom-toolbar" class="panel nds-player-top rom-toolbar" hidden>
         <p id="rom-totals"></p>
         <button class="secondary" id="rom-logout" type="button">Se déconnecter</button>
@@ -22,19 +22,6 @@
     </div>
     <div id="rom-tabs" class="rom-tabs" role="tablist" aria-label="Jeux"></div>
     <div id="rom-game"></div>
-    <template id="infinite-fusion-panel">
-        <div class="panel nds-selection">
-            <h2>Pokémon Infinite Fusion</h2>
-            {% if infiniteFusionStreamUrl %}
-                <p>Le jeu s’ouvre dans un nouvel onglet. Les sauvegardes sont conservées sur le serveur de jeu.</p>
-                <div class="actions">
-                    <a class="primary" href="{{ infiniteFusionStreamUrl }}" target="_blank" rel="noopener noreferrer">Jouer en ligne</a>
-                </div>
-            {% else %}
-                <p>Le serveur de jeu doit être configuré pour jouer dans le navigateur.</p>
-            {% endif %}
-        </div>
-    </template>
 </section>
 <p id="status" class="status" role="status" aria-live="polite" hidden></p>
 <section id="player" hidden aria-label="Émulateur">

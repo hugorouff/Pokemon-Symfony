@@ -46,22 +46,6 @@ Les jeux Nintendo DS peuvent être fournis en `.nds` ou dans un ZIP classique co
 
 Pour transférer votre partie, exportez la sauvegarde depuis le menu de l’émulateur, puis importez le fichier dans **Sauvegardes**. Sur un autre appareil, téléchargez le fichier depuis le même onglet et importez-le dans l’émulateur. Ce transfert est manuel. Deux imports du même fichier conservent deux versions.
 
-### Pokémon Infinite Fusion dans le navigateur
-
-L’onglet **Pokémon Infinite Fusion** donne accès en un clic à une session de jeu distante. Le jeu tourne avec Wine sur un serveur Docker Linux **x86-64** et Selkies transmet l’image, le son et les commandes au navigateur. Les parties restent dans le volume Docker `fusion-state`. La session est partagée par les personnes autorisées à y accéder.
-
-1. Sur le serveur Docker, extrayez une version Windows complète du jeu disponible via le [Discord du projet](https://discord.gg/infinitefusion) dans le dossier `fusion/game/`. Le fichier `Game.exe` doit être directement dans ce dossier avec les fichiers du jeu.
-2. Copiez `fusion/server.env.example` vers `.env.fusion` à la racine du projet. Choisissez un mot de passe unique puis lancez :
-
-   ```sh
-   docker compose --env-file .env.fusion -f compose.fusion.yaml up -d --build
-   ```
-
-3. Le service écoute sur `127.0.0.1:3081` en HTTPS. Pour jouer à distance, utilisez un **accès privé**. Vous pouvez passer par un tunnel SSH vers cette adresse pour un usage personnel, ou utiliser un reverse proxy HTTPS protégé par une authentification. Le proxy doit prendre en charge les WebSockets et pointer vers `https://127.0.0.1:3081` avec gestion du certificat local de Selkies. Ne publiez pas directement le port du conteneur sur Internet.
-4. Définissez `INFINITE_FUSION_STREAM_URL=https://fusion.votre-domaine.fr` dans l’environnement de Symfony ou dans `.env.local`. Utilisez l’URL réellement accessible depuis votre navigateur. L’onglet proposera alors **Jouer en ligne**. Le service possède sa propre authentification et ne dépend pas de Neon.
-
-Pour les ROMs DS, utilisez les étapes PostgreSQL ci-dessous. Il suffit ensuite d’ouvrir **Mes ROMs** depuis le site hébergé.
-
 ### Stocker les ROMs dans PostgreSQL (Neon)
 
 Récupérez l’URL PostgreSQL dans **Connect** sur Neon. Activez l’extension PHP `pdo_pgsql`. À la racine du projet, créez `.env.local` avec vos propres valeurs.
@@ -86,7 +70,7 @@ if ($romFiles.Count) { php bin/console app:roms:import @romFiles }
 .\LANCER.bat
 ```
 
-Adaptez `C:\Mes-Roms` au dossier de vos six jeux. Mettez un seul fichier `.nds` par ZIP. L’import est réservé à la console. Il accepte jusqu’à 512 Mio par fichier et dépend du quota total de la base. Vous pouvez relancer un import déjà réussi sans créer de doublon. Les entrées importées en base sont conservées avec leur nom de fichier. Infinite Fusion reste un jeu Windows local et ne passe pas par cette commande.
+Adaptez `C:\Mes-Roms` au dossier de vos six jeux. Mettez un seul fichier `.nds` par ZIP. L’import est réservé à la console. Il accepte jusqu’à 512 Mio par fichier et dépend du quota total de la base. Vous pouvez relancer un import déjà réussi sans créer de doublon. Les entrées importées en base sont conservées avec leur nom de fichier.
 
 ### Connecter le projet à Neon (option avec bucket S3)
 
@@ -131,7 +115,7 @@ Chaque ouverture enregistre les cinq cartes obtenues dans `booster_openings` lor
 
 ### Image Docker
 
-Le `Dockerfile` utilise le dossier `vendor/` fourni. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Exécutez les commandes de création des tables et des comptes avec ces mêmes variables. L’image écoute sur le port 80.
+Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Exécutez les commandes de création des tables et des comptes avec ces mêmes variables. L’image écoute sur le port 80.
 
 ## Vérification du catalogue
 
@@ -140,4 +124,3 @@ php tests/catalogue.php
 ```
 
 Ce script vérifie le parcours de toutes les pages en français et en anglais, les recherches, les albums, le contenu des boosters et les liens de cris du Pokédex. Les index de départ permettent de l’exécuter sans dépendre d’un appel externe.
-"# Pokemon-Symfony" 

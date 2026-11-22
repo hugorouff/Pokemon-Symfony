@@ -1,7 +1,7 @@
 FROM php:8.4-apache
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq-dev \
+    && apt-get install -y --no-install-recommends libpq-dev unzip \
     && docker-php-ext-install pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,8 +13,13 @@ RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /et
     && a2enconf pokemon \
     && printf '%s\n' 'upload_max_filesize=16M' 'post_max_size=20M' > "$PHP_INI_DIR/conf.d/pokemon.ini"
 
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+COPY composer.json composer.lock ./
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts --no-autoloader
+
 COPY . .
 
-RUN mkdir -p var/cache var/log var/sessions \
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --optimize --no-scripts \
+    && mkdir -p var/cache var/log var/sessions roms \
     && APP_SECRET=docker-build-only php bin/console cache:clear --env=prod --no-warmup \
     && chown -R www-data:www-data var roms

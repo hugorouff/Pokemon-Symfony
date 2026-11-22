@@ -6,5 +6,4 @@ var
 node_modules
 jeux
 roms/.*
-fusion
-compose.fusion.yaml
+vendor

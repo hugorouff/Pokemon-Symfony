@@ -1,0 +1,3 @@
+Ce dossier privé peut contenir les jeux déjà disponibles dans l’application.
+Formats : .nds, .zip (une seule ROM .nds), .gba, .gb, .gbc, .nes, .sfc, .smc, .3ds et .nsp.
+En mode Neon, les ROMs sont lues depuis le bucket privé et les sauvegardes sont conservées dans PostgreSQL.

@@ -24,15 +24,8 @@ final class Controller
     #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur'], methods: ['GET'])]
     public function page(string $section): Response
     {
-        $streamUrl = $section === 'emulateur' ? Postgres::setting('INFINITE_FUSION_STREAM_URL') : '';
-        $httpsUrl = filter_var($streamUrl, FILTER_VALIDATE_URL) !== false
-            && parse_url($streamUrl, PHP_URL_SCHEME) === 'https'
-            && parse_url($streamUrl, PHP_URL_USER) === null
-            && parse_url($streamUrl, PHP_URL_PASS) === null;
-
         return new Response($this->twig->render('app.html.twig', [
             'section' => $section,
-            'infiniteFusionStreamUrl' => $httpsUrl ? $streamUrl : null,
         ]));
     }
 
