@@ -1,0 +1,61 @@
+<header class="page-title">
+    <h1>{{ nav[section] }}</h1>
+    {% if section == 'objectifs' %}<p>Retrouve les cartes recherchées et suis tes défis de collection.</p>{% endif %}
+    {% if section == 'echanges' %}<p>Propose un de tes doubles en échange de celui d’un ami.</p>{% endif %}
+</header>
+<p id="feature-status" class="status" role="status"></p>
+<p id="feature-login" hidden><a href="/compte">Connecte-toi ou crée ton compte</a> pour utiliser cette rubrique.</p>
+
+{% if section == 'objectifs' %}
+<div id="feature-content" class="account-forms" hidden>
+    <section class="panel account-panel">
+        <h2>Cartes recherchées</h2>
+        <a href="/albums">Marquer des cartes dans les albums</a>
+        <ul id="wished-cards" class="workbench-list"></ul>
+    </section>
+    <section class="panel account-panel">
+        <h2>Défis de collection</h2>
+        <div id="water-challenge"></div>
+        <label for="challenge-album">Série à compléter à 50 %</label>
+        <select id="challenge-album"></select>
+        <div id="album-challenge"></div>
+    </section>
+</div>
+{% elseif section == 'echanges' %}
+<div id="feature-content" class="account-forms" hidden>
+    <section class="panel account-panel">
+        <h2>Mes doubles disponibles</h2>
+        <p>Partage ce code avec un ami pour lui donner accès à tes doubles proposés et à ta liste de recherches.</p>
+        <input id="friend-code" readonly aria-label="Mon code ami">
+        <label for="offer-picker">Sélectionne tes doubles à proposer</label>
+        <select id="offer-picker" multiple size="7"></select>
+        <button id="save-offers" class="secondary" type="button">Enregistrer mes doubles</button>
+    </section>
+    <section class="panel account-panel">
+        <h2>Proposer un échange</h2>
+        <form id="find-friend" class="account-panel">
+            <label>Code de ton ami<input name="code" pattern="[a-f0-9]{32}" maxlength="32" required></label>
+            <button class="secondary" type="submit">Voir ses doubles</button>
+        </form>
+        <p id="trade-match" hidden></p>
+        <form id="propose-trade" class="account-panel" hidden>
+            <label>Je donne<select name="give" required></select></label>
+            <label>Je reçois<select name="take" required></select></label>
+            <button class="primary" type="submit">Envoyer la proposition</button>
+        </form>
+    </section>
+    <section class="panel account-panel">
+        <h2>Mes propositions</h2>
+        <ul id="trade-list" class="workbench-list"></ul>
+    </section>
+</div>
+{% else %}
+<section id="feature-content" class="panel account-panel" hidden>
+    <label for="shelf-picker">Choisis jusqu’à neuf cartes de ta collection</label>
+    <select id="shelf-picker" multiple size="9"></select>
+    <label class="checkbox"><input id="shelf-publish" type="checkbox"> Rendre le classeur accessible avec son lien</label>
+    <button id="save-shelf" class="primary" type="button">Enregistrer le classeur</button>
+    <a id="shelf-link" hidden></a>
+</section>
+<div id="display-shelf" class="shelf-grid card-grid" aria-label="Cartes du classeur"></div>
+{% endif %}

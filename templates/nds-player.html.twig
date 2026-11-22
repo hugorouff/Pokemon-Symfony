@@ -18,12 +18,13 @@
     <div class="panel nds-player-top">
         <strong id="current-game"></strong>
         <div class="actions">
+            <button class="primary" id="player-checkpoint" type="button" hidden>Sauvegarder en ligne</button>
             <button class="secondary" id="player-saves" type="button" hidden>Sauvegardes</button>
             <button class="secondary" id="change-rom" type="button">Mes ROMs</button>
         </div>
     </div>
     <div class="nds-stage"><div id="game"></div></div>
-    <p class="nds-hint">Pour conserver une sauvegarde de jeu sur le serveur, exportez-la depuis le menu de l’émulateur puis importez-la dans <strong>Sauvegardes</strong>.</p>
+    <p class="nds-hint">Connecte-toi pour créer un point de reprise en ligne. Tu peux aussi importer une sauvegarde de jeu depuis <strong>Sauvegardes</strong>.</p>
 </section>
 <dialog id="rom-saves">
     <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
@@ -36,4 +37,18 @@
     </form>
     <p id="save-status" class="status" role="status"></p>
     <ul id="save-list" class="rom-list"></ul>
+</dialog>
+
+<dialog id="adventure-dialog">
+    <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
+    <h2 id="adventure-title">Carnet d’aventure</h2>
+    <p id="adventure-status" class="status" role="status"></p>
+    <p id="adventure-login" hidden><a href="/compte" target="_blank" rel="noopener">Connecte-toi ou crée ton compte</a> pour enregistrer ton carnet.</p>
+    <form id="adventure-form" class="account-panel" hidden>
+        <label>Badges obtenus<input name="badges" type="number" min="0" max="16" value="0" required></label>
+        <label>Équipe<textarea name="team" maxlength="400" rows="3"></textarea></label>
+        <label>Objectif pour la prochaine partie<input name="goal" maxlength="500"></label>
+        <label>Notes<textarea name="notes" maxlength="2000" rows="4"></textarea></label>
+        <button class="primary" type="submit">Enregistrer mon carnet</button>
+    </form>
 </dialog>

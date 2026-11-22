@@ -122,3 +122,11 @@ input[type=text]{border:1px solid #c9d3c7;background:white;color:var(--ink);bord
 .account-panel input,.account-panel button{min-width:0}
 .account-panel button{justify-self:start}
 .account-panel h2{margin:0 0 .25rem}
+
+.shelf-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-width:740px;margin:1.25rem auto}
+.shelf-card{display:grid;gap:.35rem;padding:.6rem;overflow-wrap:anywhere}
+.shelf-card img{width:100%;height:auto}
+.challenge-progress{display:grid;gap:.25rem}
+#deck-comparison{margin-top:1rem}
+#deck-comparison h2,#compare-results{grid-column:1/-1}
+#guest-actions{margin-top:1rem}

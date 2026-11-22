@@ -1,3 +1,5 @@
+import {accountState} from './account-session.js';
+import {readWishlist, toggleWishlist} from './player-features.js';
 import {getCollection} from './collection.js';
 import {api, button, clean, collator, fmt, node} from './ui.js';
 
@@ -14,6 +16,8 @@ export function startAlbums(showCards) {
     let cards = [];
     let albums = [];
     let owned = new Set();
+    let wished = new Set();
+    let signedIn = false;
     let choice;
     let listRequest;
     let detailRequest;
@@ -32,7 +36,9 @@ export function startAlbums(showCards) {
             ...album, count: album.ids.filter(id => owned.has(id)).length,
         })).filter(album => (!match || clean(album.name + ' ' + album.id).includes(match))
             && (view !== 'started' || album.count > 0)
-            && (view !== 'complete' || album.count === album.ids.length));
+            && (view !== 'complete' || album.count === album.ids.length)
+            && (view !== 'near' || (album.count > 0 && album.count < album.ids.length)));
+        if (view === 'near') visible.sort((a, b) => (a.ids.length - a.count) - (b.ids.length - b.count));
         const frag = document.createDocumentFragment();
         for (const album of visible) {
             const box = node('article', 'panel album-tile');
@@ -70,7 +76,10 @@ export function startAlbums(showCards) {
                 const {data} = await api('/api/albums', {lang}, {signal: request.signal});
                 indices.set(lang, data.sort((a, b) => collator.compare(a.name, b.name)));
             }
-            cards = await getCollection();
+            const [collection, wishlist, state] = await Promise.all([getCollection(), readWishlist(), accountState()]);
+            cards = collection;
+            wished = new Set(wishlist.map(card => card.id));
+            signedIn = !!state.accountId;
             if (request.signal.aborted) return;
             albums = indices.get(lang);
             refreshOwned();
@@ -85,11 +94,13 @@ export function startAlbums(showCards) {
     function renderDetail() {
         const {data, album} = choice;
         const ownedCount = album.ids.filter(id => owned.has(id)).length;
-        const selected = data.filter(card => mode === 'all' || owned.has(card.id) === (mode === 'owned'));
+        const lang = form.elements.lang.value;
+        const selected = data.filter(card => mode === 'all' || (mode === 'wished'
+            ? wished.has(lang + ':' + card.id) : owned.has(card.id) === (mode === 'owned')));
         const last = Math.max(1, Math.ceil(selected.length / PAGE_SIZE));
         page = Math.min(page, last);
         filterButtons.replaceChildren(...[
-            ['all', 'Toutes'], ['missing', 'Manquantes'], ['owned', 'Possédées'],
+            ['all', 'Toutes'], ['missing', 'Manquantes'], ['owned', 'Possédées'], ...(signedIn ? [['wished', 'Recherchées']] : []),
         ].map(([key, label]) => {
             const control = button(label, () => {
                 mode = key;
@@ -101,7 +112,22 @@ export function startAlbums(showCards) {
             return control;
         }));
         $('album-summary').textContent = `${fmt.format(ownedCount)} / ${fmt.format(album.ids.length)} possédées · ${fmt.format(selected.length)} affichables`;
-        showCards(selected.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), form.elements.lang.value, owned);
+        showCards(selected.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), lang, owned, (tile, card) => {
+            const id = lang + ':' + card.id;
+            if (!signedIn || (owned.has(card.id) && !wished.has(id))) return;
+            const mark = button(wished.has(id) ? 'Retirer des recherches' : 'Rechercher cette carte', async () => {
+                mark.disabled = true;
+                try {
+                    const updated = await toggleWishlist({id, name: card.name, set: album.name});
+                    wished = new Set(updated.data.map(item => item.id));
+                    if (choice?.album.id === album.id && form.elements.lang.value === lang) renderDetail();
+                } catch (error) {
+                    $('album-summary').textContent = error.message;
+                    mark.disabled = false;
+                }
+            });
+            tile.append(mark);
+        });
         const prev = button('← Précédente', () => { page--; renderDetail(); });
         const next = button('Suivante →', () => { page++; renderDetail(); });
         prev.disabled = page === 1;

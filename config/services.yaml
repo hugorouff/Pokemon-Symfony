@@ -41,6 +41,13 @@ services:
 
     App\PostgresRomSaves: ~
 
+    App\PlayerFeatures: ~
+
+    App\CardTrades: ~
+
+    App\PlayerFeaturesController:
+        tags: ['controller.service_arguments']
+
     App\RomAccounts: ~
 
     App\AccountCollection: ~

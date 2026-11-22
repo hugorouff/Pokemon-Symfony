@@ -162,7 +162,7 @@ async function showCard(card, lang) {
     load();
 }
 
-function cardsGrid(cards, lang, owned) {
+function cardsGrid(cards, lang, owned, decorate) {
     const fragment = document.createDocumentFragment();
     for (const card of cards) {
         const box = node('article', 'panel card');
@@ -178,6 +178,7 @@ function cardsGrid(cards, lang, owned) {
             const label = owned.has(card.id) ? 'Possédée' : 'Manquante';
             box.append(node('small', owned.has(card.id) ? 'owned' : '', label));
         }
+        if (decorate) decorate(box, card);
         if (section === 'collection') {
             const actions = node('div', 'card-buttons');
             const favorite = button(card.favorite ? '★ Favori' : '☆ Favori', async () => {

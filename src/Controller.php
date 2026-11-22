@@ -21,7 +21,7 @@ final class Controller
     ) {}
 
     #[Route('/', name: 'home', defaults: ['section' => 'accueil'], methods: ['GET'])]
-    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte'], methods: ['GET'])]
+    #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte|objectifs|echanges|classeur'], methods: ['GET'])]
     public function page(string $section): Response
     {
         return new Response($this->twig->render('app.html.twig', [

@@ -96,7 +96,14 @@ final class RomController
                 throw new BadRequestHttpException('Utilisez l’envoi direct au stockage en ligne.');
             }
             $file = $this->upload($request, 'save');
-            $save = $this->databaseSaves->enabled() ? $this->databaseSaves->upload($id, $request->attributes->getString('rom.owner'), $file) : $this->saves->upload($id, $file);
+            $core = $request->request->getString('checkpointCore');
+            if ($core !== '' && (!$this->databaseSaves->enabled() || $request->attributes->getString('rom.owner') === ''
+                || !in_array($core, ['desmume', 'desmume2015'], true))) {
+                throw new BadRequestHttpException('Moteur ou compte incompatible avec un point de reprise.');
+            }
+            $save = $this->databaseSaves->enabled()
+                ? $this->databaseSaves->upload($id, $request->attributes->getString('rom.owner'), $file, $core ?: null)
+                : $this->saves->upload($id, $file);
 
             return new JsonResponse($save, 201, self::HEADERS);
         });

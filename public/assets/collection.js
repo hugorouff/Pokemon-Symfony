@@ -1,4 +1,5 @@
 import {accountRequest, accountState} from './account-session.js';
+import {editFeature, readFeature} from './player-features.js';
 import {api} from './ui.js';
 
 const requestResult = request => new Promise((resolve, reject) => {
@@ -256,12 +257,23 @@ function openDeckDatabase(state) {
 }
 
 export async function getDecks() {
-    const db = await openDeckDatabase(await accountState());
+    const state = await accountState();
+    if (state.accountId) return (await readFeature('decks')).data;
+    const db = await openDeckDatabase(state);
     return requestResult(db.transaction('decks').objectStore('decks').getAll());
 }
 
 export async function createDeck(name) {
-    const db = await openDeckDatabase(await accountState());
+    const state = await accountState();
+    if (state.accountId) {
+        const deck = {name: deckName(name), entries: []};
+        await editFeature('decks', decks => {
+            deck.id = Math.max(0, ...decks.map(row => row.id)) + 1;
+            return [...decks, deck];
+        });
+        return deck.id;
+    }
+    const db = await openDeckDatabase(state);
     const transaction = db.transaction('decks', 'readwrite');
     const request = transaction.objectStore('decks').add({name: deckName(name), entries: []});
     return new Promise((resolve, reject) => {
@@ -276,12 +288,67 @@ function deckName(name) {
     return value;
 }
 
+export async function importLocalDecks() {
+    const state = await accountState();
+    if (!state.accountId) return 0;
+    const archived = await Promise.all([openDatabase(), openDeckDatabase(state)].map(async opening => {
+        const db = await opening;
+        return requestResult(db.transaction('decks').objectStore('decks').getAll());
+    }));
+    const signature = deck => JSON.stringify([deck.name, deck.entries.map(card => [card.key, card.quantity]).sort()]);
+    let count = 0;
+    await editFeature('decks', decks => {
+        let serial = Math.max(0, ...decks.map(row => row.id));
+        for (const local of archived.flat()) {
+            if (decks.some(deck => signature(deck) === signature(local))) continue;
+            decks.push({...local, id: ++serial});
+            count++;
+        }
+        return decks;
+    });
+    return count;
+}
+
+function changeDeckEntry(deck, change, card) {
+    if (change.kind === 'rename') {
+        deck.name = deckName(change.name);
+        return;
+    }
+    const entry = deck.entries.find(row => row.key === change.key);
+    if (change.kind === 'remove') {
+        if (entry?.quantity > 1) entry.quantity--;
+        else deck.entries = deck.entries.filter(row => row !== entry);
+        return;
+    }
+    if (!card || (entry?.quantity || 0) >= (card.quantity || 1)) {
+        throw new Error('Aucun exemplaire supplémentaire dans votre collection.');
+    }
+    if (deck.entries.reduce((count, row) => count + row.quantity, 0) >= DECK_CAPACITY) {
+        throw new Error('Ce deck contient déjà 60 cartes.');
+    }
+    if (entry) entry.quantity++;
+    else {
+        const normalized = normalizeCard(card);
+        deck.entries.push({key: card.id, cardId: normalized.cardId, name: normalized.name,
+            lang: normalized.lang, set: normalized.set, quantity: 1});
+    }
+}
+
 export async function changeDeck(id, change) {
     const state = await accountState();
-    const accountCard = state.accountId && change.kind === 'add'
-        ? (await api('/api/collection', {id: change.key}, {cache: 'no-store'})).data[0] : null;
+    if (state.accountId) {
+        const card = change.kind === 'add' ? (await api('/api/collection', {id: change.key}, {cache: 'no-store'})).data[0] : null;
+        await editFeature('decks', decks => {
+            const deck = decks.find(row => row.id === id);
+            if (!deck) throw new Error('Ce deck n’existe plus.');
+            if (change.kind === 'delete') return decks.filter(row => row.id !== id);
+            changeDeckEntry(deck, change, card);
+            return decks;
+        });
+        return;
+    }
     const db = await openDeckDatabase(state);
-    const transaction = db.transaction(state.accountId ? ['decks'] : ['decks', 'cards'], 'readwrite');
+    const transaction = db.transaction(['decks', 'cards'], 'readwrite');
     const decks = transaction.objectStore('decks');
     let failure;
     const completed = new Promise((resolve, reject) => {
@@ -303,44 +370,19 @@ export async function changeDeck(id, change) {
             decks.delete(id);
             return;
         }
-        if (change.kind === 'rename') {
+        const write = card => {
             try {
-                deck.name = deckName(change.name);
+                changeDeckEntry(deck, change, card);
                 decks.put(deck);
             } catch (error) {
                 abort(error);
             }
-            return;
-        }
-        const entry = deck.entries.find(row => row.key === change.key);
-        if (change.kind === 'remove') {
-            if (entry?.quantity > 1) entry.quantity--;
-            else deck.entries = deck.entries.filter(row => row !== entry);
-            decks.put(deck);
-            return;
-        }
-        const addCard = card => {
-            if (!card || (entry?.quantity || 0) >= (card.quantity || 1)) {
-                abort(new Error('Aucun exemplaire supplémentaire dans votre collection.'));
-                return;
-            }
-            if (deck.entries.reduce((count, row) => count + row.quantity, 0) >= DECK_CAPACITY) {
-                abort(new Error('Ce deck contient déjà 60 cartes.'));
-                return;
-            }
-            if (entry) entry.quantity++;
-            else {
-                const normalized = normalizeCard(card);
-                deck.entries.push({key: card.id, cardId: normalized.cardId, name: normalized.name,
-                    lang: normalized.lang, set: normalized.set, quantity: 1});
-            }
-            decks.put(deck);
         };
-        if (state.accountId) {
-            addCard(accountCard);
-        } else {
+        if (change.kind === 'add') {
             const cardRequest = transaction.objectStore('cards').get(change.key);
-            cardRequest.onsuccess = () => addCard(cardRequest.result);
+            cardRequest.onsuccess = () => write(cardRequest.result);
+        } else {
+            write();
         }
     };
     return completed;

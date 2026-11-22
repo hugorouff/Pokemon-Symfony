@@ -9,3 +9,7 @@ roms:
 collection:
     resource: ../src/CollectionController.php
     type: attribute
+
+player_features:
+    resource: ../src/PlayerFeaturesController.php
+    type: attribute

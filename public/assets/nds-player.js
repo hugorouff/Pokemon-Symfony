@@ -1,3 +1,4 @@
+import {readFeature, writeFeature} from './player-features.js';
 import {accountState} from './account-session.js';
 import {button, node} from './ui.js';
 
@@ -21,6 +22,8 @@ const saveDialog = $('rom-saves');
 const saveForm = $('save-import');
 const dateFormat = new Intl.DateTimeFormat('fr-FR', {dateStyle: 'medium', timeStyle: 'short'});
 let gameUrl;
+let checkpointUrl;
+let playingCore;
 let busy = false;
 const sizeFormat = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 1});
 
@@ -177,6 +180,10 @@ function selectGame(index, focus = false, remember = true) {
         node('small', '', `${rom.system} · ${sizeLabel(rom.size)}${rom.core ? '' : ' · Téléchargement'}`));
     const actions = node('div', 'actions rom-actions');
     if (rom.core) actions.append(button('Jouer', () => openRom(rom), 'primary'));
+    if (rom.core === 'desmume') {
+        actions.append(button('Reprendre ma partie', () => resumeGame(rom)),
+            button('Carnet d’aventure', () => showJournal(rom)));
+    }
     actions.append(button('Sauvegardes', () => showSaves(rom)),
         downloadLink('Télécharger', '/api/roms/' + rom.id + '?download=1', 'Télécharger ' + rom.name));
     const row = node('div', 'panel rom-row');
@@ -394,12 +401,107 @@ async function unpackDsZip(file) {
     return new Blob(parts, {type: 'application/octet-stream'});
 }
 
-async function openRom(rom) {
+let resuming = false;
+async function resumeGame(rom) {
+    if (busy || resuming) return;
+    resuming = true;
+    try {
+        await access;
+        if (!accountId) await accountState(true).then(applyAccess);
+        if (!accountId) {
+            await showSaves(rom);
+            return;
+        }
+        const {data} = await readJson(await fetch(savesUrl(rom), {cache: 'no-store'}));
+        const checkpoint = data.find(save => save.core === 'desmume' || save.core === 'desmume2015');
+        if (!checkpoint) {
+            status('Aucun point de reprise. Lance le jeu puis clique sur « Sauvegarder en ligne ».');
+            return;
+        }
+        await openRom(rom, checkpoint);
+    } catch (error) {
+        status(error.message, true);
+    } finally {
+        resuming = false;
+    }
+}
+
+$('player-checkpoint').addEventListener('click', async event => {
+    const control = event.currentTarget;
+    control.disabled = true;
+    try {
+        const emulator = window.EJS_emulator;
+        const core = emulator?.getCore?.() || playingCore;
+        const data = emulator?.gameManager?.getState?.();
+        if (!data?.byteLength || !['desmume', 'desmume2015'].includes(core)) {
+            throw new Error('Le lecteur n’a pas encore de partie DS à sauvegarder.');
+        }
+        const file = new Blob([data], {type: 'application/octet-stream'});
+        if (file.size > 16 * 1024 * 1024) throw new Error('Ce point de reprise dépasse 16 Mio.');
+        const form = new FormData();
+        form.append('save', file, 'reprise.state');
+        form.append('checkpointCore', core);
+        await upload(savesUrl(playingRom), form, () => {});
+        status('Point de reprise enregistré en ligne.');
+        if (saveDialog.open) await loadSaves(playingRom);
+    } catch (error) {
+        status(error.message, true);
+    } finally {
+        control.disabled = false;
+    }
+});
+
+let activeJournal;
+const adventureForm = $('adventure-form');
+async function showJournal(rom) {
+    await access;
+    if (!accountId) await accountState(true).then(applyAccess).catch(() => {});
+    $('adventure-title').textContent = 'Carnet d’aventure · ' + displayName(rom);
+    $('adventure-status').textContent = '';
+    $('adventure-login').hidden = !!accountId;
+    adventureForm.hidden = true;
+    activeJournal = null;
+    if (!$('adventure-dialog').open) $('adventure-dialog').showModal();
+    if (!accountId) return;
+    const kind = 'journal-' + rom.id;
+    try {
+        const state = await readFeature(kind);
+        activeJournal = {kind, state};
+        const {badges = 0, team = '', goal = '', notes = ''} = state.data;
+        Object.entries({badges, team, goal, notes}).forEach(([key, value]) => { adventureForm.elements[key].value = value; });
+        adventureForm.hidden = false;
+    } catch (error) {
+        $('adventure-status').textContent = error.message;
+    }
+}
+adventureForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const {kind, state} = activeJournal;
+    const button = adventureForm.querySelector('button');
+    button.disabled = true;
+    try {
+        const {badges, team, goal, notes} = Object.fromEntries(new FormData(adventureForm));
+        const updated = await writeFeature(kind, state, {badges: Number(badges), team, goal, notes});
+        activeJournal = {kind, state: updated};
+        $('adventure-status').textContent = 'Carnet enregistré.';
+    } catch (error) {
+        $('adventure-status').textContent = error.message;
+    } finally {
+        button.disabled = false;
+    }
+});
+
+async function openRom(rom, checkpoint = null) {
     if (busy) return;
     lock(true);
     status('Chargement du jeu…');
     let gameId;
     try {
+        if (checkpoint) {
+            const saved = await fetch(savesUrl(rom) + '/' + checkpoint.id, {cache: 'no-store'});
+            if (!saved.ok) throw new Error('Impossible de récupérer le point de reprise.');
+            checkpointUrl = URL.createObjectURL(await saved.blob());
+        }
         const stored = await readCachedRom(rom);
         const file = /\.zip$/i.test(rom.name) ? await unpackDsZip(stored) : stored;
         if (!file.size) throw new Error('Le fichier de la ROM est vide.');
@@ -424,11 +526,20 @@ async function openRom(rom) {
             ? 'Le chargement de la ROM a été interrompu.'
             : error.message;
         status(message, true);
+        if (checkpointUrl) {
+            URL.revokeObjectURL(checkpointUrl);
+            checkpointUrl = undefined;
+        }
         lock(false);
         return;
     }
 
     playingRom = rom;
+    playingCore = checkpoint?.core || (rom.core === 'desmume' ? $('ds-core').value : rom.core);
+    const pathName = rom.name.replace(/\.zip$/i, '.nds');
+    const emulatorName = rom.core === 'desmume'
+        ? pathName.replace(/(\.[^.]+)$/, '-' + playingCore + (accountId ? '-' + accountId : '') + '$1')
+        : pathName;
     $('player-saves').hidden = !rom.id;
     $('current-game').textContent = rom.name;
     $('selection').hidden = true;
@@ -436,16 +547,22 @@ async function openRom(rom) {
     status('Chargement de l’émulateur…');
     Object.assign(window, {
         EJS_player: '#game',
-        EJS_core: rom.core === 'desmume' ? $('ds-core').value : rom.core,
+        EJS_core: playingCore,
+        EJS_defaultOptions: {retroarch_core: playingCore},
+        EJS_hideSettings: ['retroarch_core'],
         EJS_pathtodata: dataPath,
         EJS_gameUrl: gameUrl,
-        EJS_gameName: rom.name,
+        EJS_gameName: emulatorName,
+        EJS_loadStateURL: checkpointUrl,
         EJS_gameID: gameId,
         EJS_threads: false,
-        EJS_startOnLoaded: false,
+        EJS_startOnLoaded: !!checkpoint,
         EJS_startButtonName: 'Démarrer',
-        EJS_onGameStart: () => status(''),
-        EJS_ready: () => status('Cliquez sur « Démarrer » dans le lecteur.'),
+        EJS_onGameStart: () => {
+            status('');
+            $('player-checkpoint').hidden = !(accountId && rom.core === 'desmume');
+        },
+        EJS_ready: () => status(checkpoint ? 'Chargement du point de reprise…' : 'Cliquez sur « Démarrer » dans le lecteur.'),
     });
 
     const script = document.createElement('script');
@@ -458,7 +575,7 @@ $('change-rom').addEventListener('click', () => {
     if (window.confirm('Revenir à la liste ? Pensez à sauvegarder votre partie avant de quitter.')) location.reload();
 });
 window.addEventListener('pagehide', event => {
-    if (gameUrl && !event.persisted) URL.revokeObjectURL(gameUrl);
+    if (!event.persisted) for (const url of [gameUrl, checkpointUrl]) if (url) URL.revokeObjectURL(url);
 });
 loadLibrary().catch(error => {
     status(error instanceof TypeError ? 'Impossible de joindre le serveur de la bibliothèque.' : error.message, true);

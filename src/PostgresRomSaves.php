@@ -20,7 +20,7 @@ final class PostgresRomSaves
     public function list(string $rom, string $owner): array
     {
         $query = $this->database->connection()->prepare(
-            'SELECT id, name, octet_length(content) AS size, extract(epoch FROM modified_at)::bigint AS modified
+            'SELECT id, name, checkpoint_core AS core, octet_length(content) AS size, extract(epoch FROM modified_at)::bigint AS modified
              FROM rom_saves WHERE rom_id = ? AND owner_id = ? ORDER BY modified_at DESC, id'
         );
         $query->execute([$rom, $owner]);
@@ -28,7 +28,7 @@ final class PostgresRomSaves
         return $query->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function upload(string $rom, string $owner, UploadedFile $file): array
+    public function upload(string $rom, string $owner, UploadedFile $file, ?string $core = null): array
     {
         if (!$file->isValid()) {
             throw new BadRequestHttpException('Le transfert de la sauvegarde a échoué.');
@@ -39,14 +39,17 @@ final class PostgresRomSaves
         }
         $name = $this->files->importName($file->getClientOriginalName(), $size ?: 0);
         $content = $file->getContent();
-        $id = bin2hex(random_bytes(16));
+        $id = $core === null ? bin2hex(random_bytes(16)) : substr(hash('sha256', $rom.':'.$owner.':checkpoint'), 0, 32);
         $query = $this->database->connection()->prepare(
-            "INSERT INTO rom_saves (rom_id, owner_id, id, name, content) VALUES (?, ?, ?, ?, decode(?, 'hex'))
+            "INSERT INTO rom_saves (rom_id, owner_id, id, name, content, checkpoint_core) VALUES (?, ?, ?, ?, decode(?, 'base64'), ?)
+             ON CONFLICT (rom_id, id) DO UPDATE SET content = excluded.content, checkpoint_core = excluded.checkpoint_core,
+                 name = excluded.name, modified_at = clock_timestamp()
+             WHERE rom_saves.owner_id = excluded.owner_id AND rom_saves.checkpoint_core IS NOT NULL
              RETURNING extract(epoch FROM modified_at)::bigint"
         );
-        $query->execute([$rom, $owner, $id, $name, bin2hex($content)]);
+        $query->execute([$rom, $owner, $id, $name, base64_encode($content), $core]);
 
-        return ['id' => $id, 'name' => $name, 'size' => $size, 'modified' => (int) $query->fetchColumn()];
+        return ['id' => $id, 'name' => $name, 'core' => $core, 'size' => $size, 'modified' => (int) $query->fetchColumn()];
     }
 
     public function read(string $rom, string $owner, string $id): array

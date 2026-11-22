@@ -1,4 +1,5 @@
-import {changeDeck, createDeck, DECK_CAPACITY, getCollection, getDecks} from './collection.js';
+import {accountState} from './account-session.js';
+import {changeDeck, createDeck, DECK_CAPACITY, getCollection, getDecks, importLocalDecks} from './collection.js';
 import {button, clean, collator, node} from './ui.js';
 
 const LIBRARY_PAGE_SIZE = 25;
@@ -23,6 +24,7 @@ export function startDecks() {
         library.sort((a, b) => collator.compare(a.name, b.name) || collator.compare(a.cardId, b.cardId));
         if (!decks.some(deck => deck.id === active)) active = decks[0]?.id;
         render();
+        renderComparison();
     }
 
     async function operate(work, success) {
@@ -104,6 +106,76 @@ export function startDecks() {
         next.disabled = page === last;
         $('deck-pages').replaceChildren(...(last > 1 ? [prev, node('span', '', `Page ${page} / ${last}`), next] : []));
     }
+
+    const comparison = $('deck-comparison');
+    const compared = [$('compare-first'), $('compare-second')];
+    const targets = [$('compare-key-first'), $('compare-key-second')];
+    function fillTargets() {
+        compared.forEach((select, index) => {
+            const selected = targets[index].value;
+            const deck = decks.find(candidate => candidate.id === Number(select.value));
+            targets[index].replaceChildren(...(deck?.entries || []).map(entry => new Option(entry.name, entry.key)));
+            if ([...targets[index].options].some(option => option.value === selected)) targets[index].value = selected;
+        });
+        $('compare-results').replaceChildren();
+    }
+    function renderComparison() {
+        comparison.hidden = decks.length < 2;
+        if (comparison.hidden) return;
+        compared.forEach((select, index) => {
+            const selected = select.value;
+            select.replaceChildren(...decks.map(deck => new Option(deck.name, deck.id)));
+            select.value = decks.some(deck => String(deck.id) === selected) ? selected : String(decks[index].id);
+        });
+        fillTargets();
+    }
+
+    function sampleHand(entries) {
+        const pool = [...entries];
+        for (let i = 0; i < 7; i++) {
+            const j = i + Math.floor(Math.random() * (pool.length - i));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        return pool.slice(0, 7);
+    }
+
+    compared.forEach(select => select.addEventListener('change', fillTargets));
+    comparison.addEventListener('submit', event => {
+        event.preventDefault();
+        const selected = compared.map(select => decks.find(deck => deck.id === Number(select.value)));
+        if (selected[0] === selected[1]) {
+            $('compare-results').textContent = 'Choisis deux decks différents.';
+            return;
+        }
+        $('compare-results').replaceChildren(...selected.map((deck, index) => {
+            const panel = node('div', 'panel deck-panel');
+            panel.append(node('h3', '', deck.name));
+            const pool = deck.entries.flatMap(entry => Array(entry.quantity).fill(entry));
+            if (pool.length < 7) {
+                panel.append(node('p', '', 'Ajoute au moins 7 cartes pour simuler une main.'));
+                return panel;
+            }
+            const key = targets[index].value;
+            const sample = sampleHand(pool);
+            let hits = 0;
+            for (let i = 0; i < 1000; i++) if (sampleHand(pool).some(card => card.key === key)) hits++;
+            const copies = pool.filter(card => card.key === key).length;
+            let missed = 1;
+            for (let i = 0; i < 7; i++) missed *= Math.max(0, pool.length - copies - i) / (pool.length - i);
+            panel.append(node('p', '', `${pool.length} cartes dans le deck. Carte clé présente dans ${hits / 10} % des 1 000 mains simulées.`),
+                node('p', '', `Probabilité théorique · ${((1 - missed) * 100).toFixed(1)} %`));
+            const list = node('ul');
+            list.append(...sample.map(card => node('li', '', card.name)));
+            panel.append(list);
+            return panel;
+        }));
+    });
+    const migrate = $('deck-import-local');
+    accountState().then(state => { migrate.hidden = !state.accountId; }).catch(() => {});
+    migrate.addEventListener('click', () => operate(async () => {
+        const amount = await importLocalDecks();
+        message(amount ? `${amount} deck(s) importé(s).` : 'Aucun nouveau deck local.');
+    }));
 
     addForm.addEventListener('submit', event => {
         event.preventDefault();

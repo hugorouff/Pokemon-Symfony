@@ -1,4 +1,4 @@
-{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte'} %}
+{% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte', 'objectifs': 'Objectifs', 'echanges': 'Échanges', 'classeur': 'Classeur'} %}
 {% set headings = {'cartes': 'Recherche Cartes Pokémon', 'boosters': 'Ouvrir un Booster Pack Pokémon', 'collection': 'Collection Cartes Pokémon'} %}
 {% set packs = {
     'feu': ['Feu', 'feu'], 'eau': ['Eau', 'eau'], 'plante': ['Plante', 'plante'],
@@ -16,7 +16,9 @@
     {% if section == 'emulateur' %}
         <link rel="stylesheet" href="/assets/nds-player.css">
         <script type="module" src="/assets/nds-player.js"></script>
-    {% elseif section == 'compte' %}
+    {% elseif section in ['objectifs', 'echanges', 'classeur'] %}
+        <script type="module" src="/assets/feature-pages.js"></script>
+    {% elseif section == 'compte' or section == 'accueil' %}
         <script type="module" src="/assets/account.js"></script>
     {% else %}
         <script type="module" src="/assets/app.js"></script>
@@ -43,7 +45,8 @@
 {% endif %}
 <main class="shell" id="contenu">
 {% if section == 'accueil' %}
-    <section class="welcome-section">
+    {% include 'account.html.twig' %}
+    <section class="welcome-section" id="guest-home" hidden>
         <h2>Bienvenue sur Pokémon TCG App</h2>
         <p>Explorez les cartes Pokémon, ouvrez des boosters et gérez votre collection.</p>
         <p>Utilisez le menu pour parcourir le Pokédex, organiser vos cartes ou ouvrir une ROM Nintendo DS.</p>
@@ -109,7 +112,7 @@
     <form id="album-filters" class="panel filters">
         <label>Langue<select name="lang"><option value="fr">Français</option><option value="en">Anglais</option></select></label>
         <label class="wide">Série<input name="q" type="search" maxlength="100" placeholder="Nom d’une série" autocomplete="off"></label>
-        <label>Progression<select name="view"><option value="all">Toutes les séries</option><option value="started">Séries commencées</option><option value="complete">Séries terminées</option></select></label>
+        <label>Progression<select name="view"><option value="all">Toutes les séries</option><option value="started">Séries commencées</option><option value="complete">Séries terminées</option><option value="near">Proches d’être complétées</option></select></label>
     </form>
     <p id="status" class="status" role="status"></p>
     <section id="album-detail" class="panel album-detail" hidden>
@@ -127,6 +130,7 @@
         <button class="primary">Créer un deck</button>
     </form>
     <p id="status" class="status" role="status"></p>
+    <button id="deck-import-local" type="button" class="secondary" hidden>Importer mes decks de ce navigateur</button>
     <section id="deck-layout" class="workbench" hidden>
         <div class="panel deck-panel">
             <h2>Composition</h2>
@@ -145,6 +149,15 @@
             <nav id="deck-pages" class="pager" aria-label="Pages de la collection"></nav>
         </div>
     </section>
+    <form id="deck-comparison" class="panel filters" hidden>
+        <h2>Deck contre deck</h2>
+        <label>Premier deck<select id="compare-first"></select></label>
+        <label>Carte clé du premier deck<select id="compare-key-first"></select></label>
+        <label>Second deck<select id="compare-second"></select></label>
+        <label>Carte clé du second deck<select id="compare-key-second"></select></label>
+        <button class="primary" type="submit">Simuler deux mains de 7 cartes</button>
+        <div class="account-forms" id="compare-results" aria-live="polite"></div>
+    </form>
 {% elseif section == 'pokedex' %}
     <header class="page-title"><p class="eyebrow">Pokémon et formes</p><h1>Pokédex sonore</h1><p>Recherchez un Pokémon par son nom ou son numéro. Écoutez son cri actuel et la version classique quand elle est disponible.</p></header>
     <form class="panel filters" id="filters">
@@ -155,6 +168,8 @@
     <p id="status" class="status" role="status"></p>
     <div id="results" class="dex-grid"></div>
     <nav id="pager" class="pager" aria-label="Pages du Pokédex"></nav>
+{% elseif section in ['objectifs', 'echanges', 'classeur'] %}
+    {% include 'player-features.html.twig' %}
 {% elseif section == 'compte' %}
     {% include 'account.html.twig' %}
 {% elseif section == 'emulateur' %}
