@@ -5,8 +5,6 @@ const register = document.querySelector('#account-register');
 const logout = document.querySelector('#account-logout');
 const summary = document.querySelector('#account-summary');
 const notice = document.querySelector('#account-status');
-const guest = document.querySelector('#guest-actions');
-let guestChosen = false;
 
 async function submit(event, action, state) {
     event.preventDefault();
@@ -16,9 +14,19 @@ async function submit(event, action, state) {
     notice.textContent = '';
     try {
         await accountRequest('/api/rom-access/' + action, {}, 'POST', state.token, new FormData(form));
+        if (action === 'logout') {
+            try { await globalThis.caches?.delete('atlas-roms-v1'); } catch {}
+            location.replace('/');
+            return;
+        }
         location.reload();
     } catch (error) {
         notice.textContent = error.message;
+        if (error.code === 'account_exists') {
+            login.elements.email.value = register.elements.email.value.trim();
+            register.reset();
+            login.elements.password.focus();
+        }
         button.disabled = false;
     }
 }
@@ -26,10 +34,8 @@ async function submit(event, action, state) {
 accountState().then(state => {
     if (state.accountId) {
         summary.hidden = false;
-        if (guest) guest.hidden = true;
         logout.addEventListener('submit', event => submit(event, 'logout', state));
-    } else if (state.accounts && !guestChosen) {
-        if (guest) guest.hidden = false;
+    } else if (state.accounts) {
         login.hidden = register.hidden = false;
         login.addEventListener('submit', event => submit(event, 'login', state));
         register.addEventListener('submit', event => submit(event, 'register', state));
@@ -37,12 +43,3 @@ accountState().then(state => {
         notice.textContent = 'Les comptes sont momentanément indisponibles.';
     }
 }).catch(error => { notice.textContent = error.message; });
-
-const continueAsGuest = document.querySelector('#guest-continue');
-continueAsGuest?.addEventListener('click', () => {
-    guestChosen = true;
-    login.hidden = register.hidden = true;
-    guest.hidden = true;
-    document.querySelector('#guest-home').hidden = false;
-});
-if (continueAsGuest) document.querySelector('#guest-actions').hidden = false;

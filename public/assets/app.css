@@ -9,12 +9,22 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 .skip:focus{left:12px;top:12px}
 .shell{width:min(1160px,calc(100% - 40px));margin-inline:auto}
 .site-head,#breadcrumb{background:var(--green);color:white}
-.head-inner{padding:16px 0;text-align:center}
-.site-head h1,.site-title,.brand{display:block;color:white;font-size:clamp(1.9rem,5.8vw,3.125rem);line-height:1.3;font-weight:bold;text-decoration:none}
-.site-head ul{padding:0;margin:8px 0 0;list-style:none;display:flex;justify-content:center;flex-wrap:wrap;gap:2px 9px}
-.site-head nav a{display:block;padding:4px 9px;text-decoration:none;border:2px solid transparent;border-radius:5px;color:white;font-weight:bold}
-.site-head nav a:hover,.site-head nav a:focus-visible{background:white;color:#287b31}
-.site-head nav a[aria-current]{text-decoration:underline;text-underline-offset:4px}
+.head-inner{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem 1rem;padding:10px 0}
+.brand{color:white;font-size:clamp(1.2rem,4vw,1.55rem);line-height:1.25;font-weight:bold;text-decoration:none}
+.site-head nav{margin-left:auto}
+.site-head .menu,.nav-group-links{list-style:none;margin:0;padding:0}
+.site-head .menu{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.site-head .menu>li>a,.nav-group summary,.install-app{display:block;padding:.35rem .6rem;border:0;border-radius:5px;color:white;font-weight:bold;background:transparent;text-decoration:none;cursor:pointer}
+.site-head .menu>li>a:hover,.site-head .menu>li>a:focus-visible,.nav-group summary:hover,.nav-group summary:focus-visible,.install-app:hover,.install-app:focus-visible{background:white;color:#286532}
+.site-head a[aria-current],.nav-group .current-group{text-decoration:underline;text-underline-offset:4px}
+.nav-group{position:relative}
+.nav-group summary::marker{font-size:.7em}
+.nav-group-links{position:absolute;top:calc(100% + 6px);left:0;z-index:4;width:max-content;max-width:min(15rem,calc(100vw - 30px));border:1px solid var(--line);border-radius:var(--radius);background:white;color:var(--ink);box-shadow:0 6px 22px #0002;padding:4px}
+.nav-group-links a{display:block;padding:.35rem .55rem;border-radius:4px;text-decoration:none}
+.nav-group-links a:is(:hover,:focus-visible){background:#e5f2e5;color:#234e2a}
+.install-app{border:1px solid #fff9;font-size:.9rem}
+#install-help p{margin-top:.6rem}
+@media(max-width:590px){.site-head nav{order:3;margin-left:0;width:100%}.head-inner{justify-content:space-between}.site-head .menu{gap:0 4px}.nav-group summary{font-size:.9rem}}
 #breadcrumb{margin-top:1px;padding-block:8px;font-size:.88rem}
 #breadcrumb .shell{display:flex;gap:9px}
 #breadcrumb a{text-decoration:none}

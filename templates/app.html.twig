@@ -1,5 +1,5 @@
 {% set nav = {'accueil': 'Accueil', 'cartes': 'Rechercher une carte', 'boosters': 'Ouvrir un booster', 'collection': 'Ma collection', 'pokedex': 'Pokédex', 'albums': 'Albums', 'decks': 'Decks', 'emulateur': 'Mes ROMs', 'compte': 'Mon compte', 'objectifs': 'Objectifs', 'echanges': 'Échanges', 'classeur': 'Classeur'} %}
-{% set headings = {'cartes': 'Recherche Cartes Pokémon', 'boosters': 'Ouvrir un Booster Pack Pokémon', 'collection': 'Collection Cartes Pokémon'} %}
+{% set navGroups = {'Cartes': ['cartes', 'boosters', 'pokedex'], 'Collection': ['collection', 'albums', 'decks', 'objectifs', 'echanges', 'classeur']} %}
 {% set packs = {
     'feu': ['Feu', 'feu'], 'eau': ['Eau', 'eau'], 'plante': ['Plante', 'plante'],
     'electrique': ['Électrique', 'elec'], 'psy': ['Psy', 'psy'], 'combat': ['Combat', 'combat'],
@@ -12,6 +12,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#4CAF50">
     <title>{{ nav[section] }} · Pokémon TCG App</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/app-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/icons/app-180.png">
+    <script type="module" src="/assets/shell.js"></script>
     <link rel="stylesheet" href="/assets/app.css">
     {% if section == 'emulateur' %}
         <link rel="stylesheet" href="/assets/nds-player.css">
@@ -28,29 +32,38 @@
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="site-head">
     <div class="shell head-inner">
-        {% if section == 'accueil' %}<h1>Pokémon TCG App</h1>
-        {% elseif headings[section] is defined %}<p class="site-title">{{ headings[section] }}</p>
-        {% else %}<a class="brand" href="{{ path('home') }}">Pokémon TCG App</a>{% endif %}
-        <nav aria-label="Navigation principale">
-            <ul class="menu">
-                {% for key, label in nav %}
-                    <li><a href="{{ key == 'accueil' ? path('home') : path('section', {section:key}) }}"{% if key == section %} aria-current="page"{% endif %}>{{ label }}</a></li>
-                {% endfor %}
-            </ul>
-        </nav>
+        {% if signedIn %}
+            <a class="brand" href="{{ path('home') }}">Pokémon TCG App</a>
+            <nav aria-label="Navigation principale">
+                <ul class="menu">
+                    {% for group, keys in navGroups %}
+                        <li>
+                            <details class="nav-group">
+                                <summary{% if section in keys %} class="current-group"{% endif %}>{{ group }}</summary>
+                                <ul class="nav-group-links">
+                                    {% for key in keys %}
+                                        <li><a href="{{ path('section', {section:key}) }}"{% if key == section %} aria-current="page"{% endif %}>{{ nav[key] }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </details>
+                        </li>
+                    {% endfor %}
+                    <li><a href="{{ path('section', {section:'emulateur'}) }}"{% if section == 'emulateur' %} aria-current="page"{% endif %}>Jouer</a></li>
+                    <li><a href="{{ path('section', {section:'compte'}) }}"{% if section == 'compte' %} aria-current="page"{% endif %}>Mon compte</a></li>
+                </ul>
+            </nav>
+        {% else %}
+            <span class="brand">Pokémon TCG App</span>
+        {% endif %}
+        <button id="install-app" class="install-app" type="button" hidden>Installer l’appli</button>
     </div>
 </header>
-{% if section != 'accueil' %}
+{% if signedIn and section != 'accueil' %}
     <nav id="breadcrumb" aria-label="Fil d’Ariane"><div class="shell"><a href="{{ path('home') }}">Accueil</a><span aria-hidden="true"> &gt; </span><span aria-current="page">{{ nav[section] }}</span></div></nav>
 {% endif %}
 <main class="shell" id="contenu">
 {% if section == 'accueil' %}
     {% include 'account.html.twig' %}
-    <section class="welcome-section" id="guest-home" hidden>
-        <h2>Bienvenue sur Pokémon TCG App</h2>
-        <p>Explorez les cartes Pokémon, ouvrez des boosters et gérez votre collection.</p>
-        <p>Utilisez le menu pour parcourir le Pokédex, organiser vos cartes ou ouvrir une ROM Nintendo DS.</p>
-    </section>
 {% elseif section == 'cartes' %}
     <section id="header-search" class="tcg-heading">
         <h1>Pokémon TCG Explorer</h1>
@@ -176,7 +189,12 @@
     {% include 'nds-player.html.twig' %}
 {% endif %}
 </main>
-<footer class="site-foot"><span>Pokémon TCG App · Données <a href="https://tcgdex.dev/">TCGdex</a> et <a href="https://pokeapi.co/">PokéAPI</a></span></footer>
+{% if signedIn %}<footer class="site-foot"><span>Pokémon TCG App · Données <a href="https://tcgdex.dev/">TCGdex</a> et <a href="https://pokeapi.co/">PokéAPI</a></span></footer>{% endif %}
 <dialog id="detail"><div class="dialog-top"><button id="close-detail" class="secondary" type="button">Fermer <span aria-hidden="true">×</span></button></div><div id="detail-content"></div></dialog>
+<dialog id="install-help" aria-labelledby="install-title">
+    <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>
+    <h2 id="install-title">Installer l’application</h2>
+    <p id="install-instructions"></p>
+</dialog>
 </body>
 </html>

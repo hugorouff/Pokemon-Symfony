@@ -20,12 +20,15 @@ final class Controller
         private readonly Catalog $catalog,
     ) {}
 
-    #[Route('/', name: 'home', defaults: ['section' => 'accueil'], methods: ['GET'])]
+    #[Route('/', name: 'home', defaults: ['section' => 'accueil', '_public_auth' => true], methods: ['GET'])]
     #[Route('/{section}', name: 'section', requirements: ['section' => 'cartes|boosters|collection|albums|decks|pokedex|emulateur|compte|objectifs|echanges|classeur'], methods: ['GET'])]
-    public function page(string $section): Response
+    public function page(string $section, Request $request, RomAccess $access): Response
     {
+        $owner = $request->attributes->get('rom.owner') ?? $access->owner($request);
+
         return new Response($this->twig->render('app.html.twig', [
             'section' => $section,
+            'signedIn' => $owner !== null && $owner !== '',
         ]));
     }
 
@@ -41,19 +44,19 @@ final class Controller
         return new RedirectResponse(['index' => '/', 'search' => '/cartes', 'booster' => '/boosters', 'collection' => '/collection'][$old], 301);
     }
 
-    #[Route('/api/rom-access', methods: ['GET'])]
+    #[Route('/api/rom-access', defaults: ['_public_auth' => true], methods: ['GET'])]
     public function romAccess(Request $request, RomAccess $access): JsonResponse
     {
         return new JsonResponse($access->state($request), 200, ['Cache-Control' => 'private, no-store']);
     }
 
-    #[Route('/api/rom-access/login', methods: ['POST'])]
+    #[Route('/api/rom-access/login', defaults: ['_public_auth' => true], methods: ['POST'])]
     public function unlockRoms(Request $request, RomAccess $access): JsonResponse
     {
         return $access->login($request);
     }
 
-    #[Route('/api/rom-access/register', methods: ['POST'])]
+    #[Route('/api/rom-access/register', defaults: ['_public_auth' => true], methods: ['POST'])]
     public function register(Request $request, RomAccess $access): JsonResponse
     {
         return $access->register($request);

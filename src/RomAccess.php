@@ -7,8 +7,10 @@ namespace App;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 final class RomAccess
@@ -56,7 +58,7 @@ final class RomAccess
         $password = $request->request->getString('password');
         $account = null;
         if ($this->accounts->enabled()) {
-            $email = $request->request->getString('email');
+            $email = trim($request->request->getString('email'));
             if (strlen($email) <= 254 && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $account = $this->accounts->byEmail($email);
             }
@@ -101,12 +103,18 @@ final class RomAccess
             return $this->error('Les deux mots de passe doivent être identiques.', 422);
         }
         $account = $this->accounts->register($email, $password);
-        if ($account === null) {
-            return $this->error('Impossible de créer le compte avec cette adresse. Si tu as déjà un compte, connecte-toi.', 409);
+        $created = $account !== null;
+        if (!$created) {
+            $existing = $this->accounts->byEmail($email);
+            if ($existing === null || !password_verify($password, $existing['password_hash'])) {
+                return new JsonResponse(['error' => 'Adresse déjà utilisée. Connecte-toi avec le mot de passe de ce compte.',
+                    'code' => 'account_exists'], 409, ['Cache-Control' => 'private, no-store']);
+            }
+            $account = $existing;
         }
         $this->authenticate($request, $account['id'], $account['password_hash']);
 
-        return new JsonResponse($this->state($request), 201, ['Cache-Control' => 'private, no-store']);
+        return new JsonResponse($this->state($request), $created ? 201 : 200, ['Cache-Control' => 'private, no-store']);
     }
 
     private function authenticate(Request $request, string $id, string $hash): void
@@ -132,12 +140,15 @@ final class RomAccess
     public function guard(ControllerEvent $event): void
     {
         $request = $event->getRequest();
-        if (!$request->attributes->get('_private_rom_library') && !$request->attributes->get('_private_account')) {
+        if ($request->attributes->getBoolean('_public_auth')
+            || ($request->attributes->get('_route') === 'section' && $request->attributes->get('section') === 'compte')) {
             return;
         }
         $owner = $this->owner($request);
-        if ($owner === null || ($owner === '' && $request->attributes->get('_private_account'))) {
-            $event->setController(fn () => $this->error('Connectez-vous pour accéder à vos données personnelles.', 401));
+        if ($owner === null || $owner === '') {
+            $event->setController(str_starts_with($request->getPathInfo(), '/api/')
+                ? fn () => $this->error('Connecte-toi pour accéder à l’application.', 401)
+                : static fn () => new RedirectResponse('/', 302, ['Cache-Control' => 'private, no-store']));
 
             return;
         }
@@ -150,6 +161,14 @@ final class RomAccess
         // Libère la session avant un transfert long, pour les autres onglets et téléchargements.
         if ($request->isMethodSafe()) {
             $request->getSession()->save();
+        }
+    }
+
+    #[AsEventListener(event: 'kernel.response')]
+    public function preventPrivateCaching(ResponseEvent $event): void
+    {
+        if ($event->isMainRequest()) {
+            $event->getResponse()->headers->set('Cache-Control', 'private, no-store');
         }
     }
 

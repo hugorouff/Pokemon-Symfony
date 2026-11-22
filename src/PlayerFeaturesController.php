@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class PlayerFeaturesController
 {
-    private const KIND = 'decks|wishlist|offers|shelf|journal-[a-f0-9]{64}';
+    private const KIND = 'decks|wishlist|offers|shelf|(?:journal|prefs)-[a-f0-9]{64}';
     private const TOKEN = '[a-f0-9]{32}';
 
     public function __construct(
@@ -28,8 +28,8 @@ final class PlayerFeaturesController
     {
         return $this->respond(function () use ($request, $kind) {
             $owner = $this->owner($request);
-            if (str_starts_with($kind, 'journal-')) {
-                $rom = substr($kind, 8);
+            if (str_contains($kind, '-')) {
+                $rom = substr($kind, strpos($kind, '-') + 1);
                 if ($this->databaseRoms->enabled()) {
                     if ($this->databaseRoms->find($rom) === null) {
                         $this->localRoms->file($rom);

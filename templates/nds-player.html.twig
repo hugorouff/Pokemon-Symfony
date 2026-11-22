@@ -19,12 +19,14 @@
         <strong id="current-game"></strong>
         <div class="actions">
             <button class="primary" id="player-checkpoint" type="button" hidden>Sauvegarder en ligne</button>
+            <button class="secondary" id="player-preferences" type="button" hidden>Synchroniser les réglages</button>
             <button class="secondary" id="player-saves" type="button" hidden>Sauvegardes</button>
             <button class="secondary" id="change-rom" type="button">Mes ROMs</button>
         </div>
     </div>
-    <div class="nds-stage"><div id="game"></div></div>
-    <p class="nds-hint">Connecte-toi pour créer un point de reprise en ligne. Tu peux aussi importer une sauvegarde de jeu depuis <strong>Sauvegardes</strong>.</p>
+    <div class="nds-stage"><div id="game" aria-label="Écran du jeu"></div></div>
+    <p id="player-preferences-status" class="status" role="status"></p>
+    <p class="nds-hint">Clique dans le jeu pour reprendre le contrôle du clavier. Tu peux enregistrer un point de reprise en ligne. Tu peux aussi importer une sauvegarde de jeu depuis <strong>Sauvegardes</strong>.</p>
 </section>
 <dialog id="rom-saves">
     <div class="dialog-top"><form method="dialog"><button class="secondary">Fermer</button></form></div>

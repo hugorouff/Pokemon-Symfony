@@ -8,8 +8,6 @@ call composer install --no-interaction
 if errorlevel 1 (pause & exit /b 1)
 php bin/console cache:clear
 if errorlevel 1 (pause & exit /b 1)
-php bin/console app:roms:password
-if errorlevel 1 (pause & exit /b 1)
 echo Ouvrez http://localhost:3000
 php -d upload_max_filesize=16G -d post_max_size=17G -d max_input_time=300 -S localhost:3000 -t public public/router.php
 pause

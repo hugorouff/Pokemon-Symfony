@@ -18,7 +18,7 @@ final class PlayerFeatures
         $query->execute([$owner, $kind]);
         $row = $query->fetch(\PDO::FETCH_ASSOC);
 
-        return $row ? ['data' => json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR), 'version' => (int) $row['version'], 'token' => $row['public_token']]
+        return $row ? ['data' => json_decode($row['payload'], !str_starts_with($kind, 'prefs-'), flags: JSON_THROW_ON_ERROR), 'version' => (int) $row['version'], 'token' => $row['public_token']]
             : ['data' => [], 'version' => 0, 'token' => null];
     }
 
@@ -90,6 +90,54 @@ final class PlayerFeatures
         return $list;
     }
 
+    private function gamePreferences(array $value): array
+    {
+        $result = [];
+        foreach (['desmume', 'desmume2015'] as $core) {
+            if (!isset($value[$core])) {
+                continue;
+            }
+            $profile = $value[$core];
+            if (!is_array($profile) || !is_array($profile['settings'] ?? null)
+                || !is_array($profile['controlSettings'] ?? null) || count($profile['settings']) > 200) {
+                throw new BadRequestHttpException('Réglages de jeu invalides.');
+            }
+            $options = [];
+            foreach ($profile['settings'] as $key => $setting) {
+                if (is_string($key) && $key !== 'retroarch_core' && preg_match('/^[a-z0-9_-]{1,80}$/iD', $key)
+                    && (is_bool($setting) || is_int($setting) || is_float($setting)
+                        || (is_string($setting) && strlen($setting) <= 250))) {
+                    $options[$key] = $setting;
+                }
+            }
+            $controls = [];
+            for ($player = 0; $player < 4; $player++) {
+                $bindings = $profile['controlSettings'][$player] ?? [];
+                if (!is_array($bindings) || count($bindings) > 128) {
+                    throw new BadRequestHttpException('Commandes de jeu invalides.');
+                }
+                $keys = [];
+                foreach ($bindings as $index => $mapping) {
+                    if (!is_int($index) || $index < 0 || $index > 255 || !is_array($mapping)) {
+                        continue;
+                    }
+                    $button = [];
+                    foreach (['value', 'value2'] as $field) {
+                        $assigned = $mapping[$field] ?? null;
+                        if (is_int($assigned) || (is_string($assigned) && strlen($assigned) <= 96)) {
+                            $button[$field] = $assigned;
+                        }
+                    }
+                    $keys[$index] = (object) $button;
+                }
+                $controls[$player] = (object) $keys;
+            }
+            $result[$core] = ['settings' => (object) $options, 'controlSettings' => (object) $controls];
+        }
+
+        return $result;
+    }
+
     private function validate(string $kind, mixed $value): array
     {
         if (!is_array($value)) {
@@ -103,6 +151,9 @@ final class PlayerFeatures
                 'published' => ($value['published'] ?? false) === true,
                 'cards' => array_values(array_unique(array_map(self::cardId(...), $this->items($value['cards'] ?? null, 9)))),
             ];
+        }
+        if (str_starts_with($kind, 'prefs-')) {
+            return $this->gamePreferences($value);
         }
         if (str_starts_with($kind, 'journal-')) {
             $badges = $value['badges'] ?? null;

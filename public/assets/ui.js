@@ -15,7 +15,12 @@ export function button(label, action, style = 'secondary') {
 export async function api(path, query = {}, options) {
     const response = await fetch(path + '?' + new URLSearchParams(query), options);
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'La requête a échoué. Réessayez.');
+    if (!response.ok) {
+        const error = new Error(data.error || 'La requête a échoué. Réessayez.');
+        error.code = data.code;
+        error.status = response.status;
+        throw error;
+    }
     return data;
 }
 

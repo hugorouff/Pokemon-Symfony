@@ -24,7 +24,7 @@ Pour un hébergement, configurez `public/` comme dossier public et redirigez les
 - Le catalogue récupère ses données de [TCGdex](https://tcgdex.dev/fr/rest/cards). Le ZIP inclut les index du 19 novembre 2026, avec 22 342 entrées en français et 23 912 en anglais. La recherche par nom ou identifiant, les filtres et la pagination s’appliquent à toutes les entrées de la langue choisie. Chaque langue a sa propre couverture. Certaines entrées de TCGdex sont dépourvues de visuel.
 - Les fiches de cartes chargent les données de TCGdex et les mettent en cache pour 24 heures. Une fiche simplifiée reste disponible depuis l’index si la source ne répond pas. Les images sont servies par la source. Les boosters virtuels tirent cinq cartes illustrées distinctes parmi les résultats filtrés. Le quota est de 10 tirages aléatoires ou 3 tirages par type et par jour, dans le navigateur.
 - Le Pokédex inclut 1 025 espèces et 326 formes alternatives, avec les données de [PokéAPI](https://pokeapi.co/docs/v2). Symfony récupère les cris modernes et classiques via PokéAPI et les sert sous `/api/pokemon/{id}/cry/{latest|legacy}`. Il conserve une copie audio en cache après la première lecture. Les fiches de cartes donnent aussi accès aux cris quand TCGdex fournit un numéro de Pokédex. Une connexion est nécessaire pour charger les images et récupérer chaque cri la première fois.
-- Avec un compte, **Ma collection** conserve les cartes, les quantités et les favoris dans PostgreSQL. Les boosters ouverts connecté alimentent la collection. Les visiteurs gardent leur collection dans IndexedDB. Sur l’adresse d’origine, connectez-vous puis utilisez **Importer mes cartes de ce navigateur** pour récupérer vos anciennes cartes. Vous pouvez aussi exporter le JSON depuis l’ancien site et l’importer sur Render. Les decks des joueurs connectés sont synchronisés dans PostgreSQL. Dans **Decks**, le bouton **Importer mes decks de ce navigateur** récupère les decks locaux de l’ancienne version.
+- Avec un compte, **Ma collection** conserve les cartes, les quantités et les favoris dans PostgreSQL. Les boosters ouverts connecté alimentent la collection. Sur l’adresse d’origine, connectez-vous puis utilisez **Importer mes cartes de ce navigateur** pour récupérer vos anciennes cartes. Vous pouvez aussi exporter le JSON depuis l’ancien site et l’importer sur Render. Les decks des joueurs connectés sont synchronisés dans PostgreSQL. Dans **Decks**, le bouton **Importer mes decks de ce navigateur** récupère les decks locaux de l’ancienne version.
 
 Pour récupérer les nouvelles cartes et séries de TCGdex, lancez la commande ci-dessous. Ajoutez `fr` ou `en` en argument pour actualiser une seule langue. La mise à jour remplace l’index de la langue après réception des cartes, des séries et des types.
 
@@ -38,20 +38,28 @@ Les **Albums** affichent la progression par série et par langue. Ouvrez une sé
 
 Dans **Decks**, créez et renommez plusieurs listes de 60 cartes maximum à partir de votre collection. Le nombre d’exemplaires ajoutables dépend de la quantité possédée. Si une carte disparaît de la collection, le deck garde sa référence et signale les exemplaires manquants. Chaque deck s’exporte en fichier texte.
 
+## Installer l’application
+
+Depuis le site HTTPS, utilisez **Installer l’appli**. Chrome et Edge peuvent afficher une confirmation native. Sur iPhone ou iPad, utilisez **Partager → Sur l’écran d’accueil** dans Safari. Le mode installé utilise le même compte que le site.
+
+Si une adresse est déjà utilisée, connectez-vous avec le mot de passe existant. Pour réinitialiser votre propre compte en tant qu’administrateur, utilisez la même base Neon et lancez `php bin/console app:roms:account --rotate votre-adresse@example.com`. Le compte conserve son identifiant et ses données.
+
 ## Fonctions du compte
 
-L’accueil propose la connexion, l’inscription et l’accès invité. Les ROMs restent jouables en invité. Les fonctions de synchronisation utilisent le compte présent sur l’appareil.
+L’application s’ouvre sur la connexion et l’inscription. Une connexion est nécessaire pour consulter les rubriques, ouvrir un jeu ou accéder à un lien de classeur.
 
 - Dans **Albums**, passez sur les séries proches d’être complétées et ajoutez des cartes manquantes à vos recherches. La page **Objectifs** rassemble ces cartes et suit les défis des dix cartes Eau distinctes et des 50 % d’une série choisie.
 - Dans **Decks**, sélectionnez deux decks et une carte clé dans chacun. La comparaison affiche une main de sept cartes par deck, la fréquence sur 1 000 tirages et la probabilité théorique, sans règles de combat ni mulligan.
 - Dans **Échanges**, cochez les doubles que vous proposez, enregistrez-les et partagez votre code ami. Le destinataire voit vos offres et recherches avec ce code. Un échange transfère un exemplaire dans chaque sens après acceptation du destinataire, si les deux cartes sont toujours disponibles en double.
-- Dans **Classeur**, sélectionnez jusqu’à neuf cartes puis activez le partage. Le lien affiche uniquement les cartes choisies, sans les quantités ni les autres données du compte.
+- Dans **Classeur**, sélectionnez jusqu’à neuf cartes puis activez le partage. Le lien affiche uniquement les cartes choisies aux joueurs connectés, sans les quantités ni les autres données du compte.
 
-## ROMs publiques et sauvegardes personnelles
+## ROMs et sauvegardes personnelles
 
-La page **Mes ROMs** s’ouvre sans compte et affiche un onglet par jeu disponible. Les sauvegardes en ligne nécessitent une connexion. Chaque onglet donne accès au lecteur, au téléchargement et aux sauvegardes du jeu. La page ne permet plus l’ajout de jeux. Les fichiers existants restent disponibles dans le dossier privé `roms/` ou dans le bucket privé configuré.
+La page **Mes ROMs** affiche un onglet par jeu après connexion. Les sauvegardes en ligne nécessitent une connexion. Chaque onglet donne accès au lecteur, au téléchargement et aux sauvegardes du jeu. La page ne permet plus l’ajout de jeux. Les fichiers existants restent disponibles dans le dossier privé `roms/` ou dans le bucket privé configuré.
 
 Les jeux Nintendo DS peuvent être fournis en `.nds` ou dans un ZIP classique contenant un seul `.nds` non chiffré, de 512 Mio maximum une fois décompressé. Le lecteur télécharge la ROM puis la met en cache lorsque le navigateur le permet. La déconnexion de la bibliothèque efface ce cache. Les moteurs sont chargés via [EmulatorJS](https://emulatorjs.org/docs/systems/). Les fichiers `.3ds` et `.nsp` restent téléchargeables.
+
+Cliquez dans l’écran du jeu si le clavier commande la page. Dans l’émulateur DS, modifiez vos options d’affichage ou vos commandes de clavier et de manette puis utilisez **Synchroniser les réglages**. L’application les charge à la prochaine ouverture du même jeu et du même moteur avec le même compte.
 
 Dans chaque onglet DS, le **Carnet d’aventure** permet de noter badges, équipe, objectif et notes. Lorsque le jeu a démarré, **Sauvegarder en ligne** remplace le dernier point de reprise de ce jeu pour votre compte. Retrouvez-le via **Reprendre ma partie** sur un autre appareil, avec le moteur enregistré. Les points de reprise sont limités à 16 Mio. Les sauvegardes cartouche et les anciens fichiers importés restent disponibles via **Sauvegardes** et s’utilisent par import manuel dans l’émulateur. Le nom interne du jeu est désormais séparé par moteur et par compte. Pour conserver une ancienne sauvegarde restée uniquement dans le lecteur du navigateur, exportez-la depuis l’ancienne version avant de la charger dans le lecteur mis à jour.
 

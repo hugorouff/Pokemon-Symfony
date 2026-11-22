@@ -1,6 +1,6 @@
 <header class="page-title">
-    <h1>{{ section == 'accueil' ? 'Jouer et collectionner' : 'Mon compte' }}</h1>
-    <p>Retrouve ta collection et tes sauvegardes DS sur tes appareils.</p>
+    <h1>{{ signedIn ? 'Mon compte' : 'Connexion' }}</h1>
+    <p>{{ signedIn ? 'Retrouve ta collection et tes sauvegardes DS sur tes appareils.' : 'Connecte-toi ou crée un compte pour ouvrir l’application.' }}</p>
 </header>
 <p id="account-status" class="status error" role="status"></p>
 <div class="account-forms">
@@ -31,10 +31,3 @@
         <button type="submit" class="primary">Créer mon compte</button>
     </form>
 </div>
-
-{% if section == 'accueil' %}
-<div class="actions" id="guest-actions" hidden>
-    <button id="guest-continue" class="secondary" type="button">Continuer sans compte</button>
-    <a href="/emulateur">Voir les jeux DS</a>
-</div>
-{% endif %}

@@ -491,6 +491,68 @@ adventureForm.addEventListener('submit', async event => {
     }
 });
 
+const gameSurface = $('game');
+const scrollKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Spacebar']);
+const formControl = 'input, textarea, select, button, a[href], summary, [contenteditable]:not([contenteditable="false"]), [role="slider"]';
+gameSurface.addEventListener('pointerdown', event => {
+    if (playingRom && event.target instanceof Element && !event.target.closest(formControl)) {
+        gameSurface.focus({preventScroll: true});
+    }
+}, {capture: true});
+gameSurface.addEventListener('keydown', event => {
+    if (!playingRom || $('player').hidden || !scrollKeys.has(event.key)) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+        || (event.target instanceof Element && event.target.closest(formControl))) return;
+    // Keep propagation intact so EmulatorJS still receives the key itself.
+    event.preventDefault();
+}, {capture: true});
+
+const preferencesButton = $('player-preferences');
+const preferencesNotice = $('player-preferences-status');
+
+async function restorePreferences(rom, core, gameId, emulatorName) {
+    if (!accountId || rom.core !== 'desmume') return;
+    try {
+        const {data} = await readFeature('prefs-' + rom.id);
+        const profile = data[core];
+        if (!profile) return;
+        // EmulatorJS 4.2.3 reads this key before loading its core and input mapping.
+        const key = 'ejs-' + (gameId || 1) + '-nds-' + emulatorName + '-settings';
+        const old = JSON.parse(localStorage.getItem(key) || '{}');
+        localStorage.setItem(key, JSON.stringify({
+            ...profile,
+            settings: {...profile.settings, retroarch_core: core},
+            cheats: Array.isArray(old.cheats) ? old.cheats : [],
+        }));
+        preferencesNotice.textContent = 'Réglages et commandes du compte chargés.';
+    } catch {
+        preferencesNotice.textContent = 'Les réglages en ligne n’ont pas pu être chargés. Le jeu utilise les réglages locaux.';
+    }
+}
+
+preferencesButton.addEventListener('click', async () => {
+    const emulator = window.EJS_emulator;
+    const core = emulator?.getCore?.() || playingCore;
+    if (!playingRom || !emulator?.settings || !emulator?.controls || !['desmume', 'desmume2015'].includes(core)) {
+        preferencesNotice.textContent = 'Démarre le jeu avant de synchroniser les réglages.';
+        return;
+    }
+    preferencesButton.disabled = true;
+    try {
+        const kind = 'prefs-' + playingRom.id;
+        const previous = await readFeature(kind);
+        await writeFeature(kind, previous, {
+            ...previous.data,
+            [core]: {settings: emulator.settings, controlSettings: emulator.controls},
+        });
+        preferencesNotice.textContent = 'Réglages et commandes enregistrés dans ton compte.';
+    } catch (error) {
+        preferencesNotice.textContent = error.message;
+    } finally {
+        preferencesButton.disabled = false;
+    }
+});
+
 async function openRom(rom, checkpoint = null) {
     if (busy) return;
     lock(true);
@@ -545,6 +607,7 @@ async function openRom(rom, checkpoint = null) {
     $('selection').hidden = true;
     $('player').hidden = false;
     status('Chargement de l’émulateur…');
+    await restorePreferences(rom, playingCore, gameId, emulatorName);
     Object.assign(window, {
         EJS_player: '#game',
         EJS_core: playingCore,
@@ -560,7 +623,10 @@ async function openRom(rom, checkpoint = null) {
         EJS_startButtonName: 'Démarrer',
         EJS_onGameStart: () => {
             status('');
+            gameSurface.tabIndex = 0;
+            gameSurface.focus({preventScroll: true});
             $('player-checkpoint').hidden = !(accountId && rom.core === 'desmume');
+            preferencesButton.hidden = !(accountId && rom.core === 'desmume');
         },
         EJS_ready: () => status(checkpoint ? 'Chargement du point de reprise…' : 'Cliquez sur « Démarrer » dans le lecteur.'),
     });

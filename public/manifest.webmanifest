@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Pokémon TCG App",
+  "short_name": "Pokémon TCG",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#4caf50",
+  "background_color": "#ffffff",
+  "icons": [
+    {"src": "/icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

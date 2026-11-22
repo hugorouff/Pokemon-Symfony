@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Kernel;
+use App\RomAccess;
 use Symfony\Component\HttpFoundation\Request;
 
 require dirname(__DIR__).'/vendor/autoload.php';
@@ -22,6 +23,16 @@ function check(bool $ok, string $message): void
 {
     if (!$ok) {
         throw new RuntimeException($message);
+    }
+}
+
+request('/api/cards', 'GET', 401);
+$dispatcher = $kernel->getContainer()->get('event_dispatcher');
+// The catalogue fixture is independent of PostgreSQL. Exercise the anonymous gate
+// above, then remove it from this in-process dispatcher only.
+foreach ($dispatcher->getListeners('kernel.controller') as $listener) {
+    if (is_array($listener) && $listener[0] instanceof RomAccess && $listener[1] === 'guard') {
+        $dispatcher->removeListener('kernel.controller', $listener);
     }
 }
 
