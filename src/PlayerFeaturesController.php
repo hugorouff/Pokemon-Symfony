@@ -116,7 +116,13 @@ final class PlayerFeaturesController
             return new JsonResponse(['error' => $error->getMessage()], $error->getStatusCode(), $headers);
         } catch (\Symfony\Component\HttpFoundation\Exception\JsonException) {
             return new JsonResponse(['error' => 'Données JSON invalides.'], 400, $headers);
-        } catch (\PDOException) {
+        } catch (\PDOException $error) {
+            $state = $error->errorInfo[0] ?? (string) $error->getCode();
+            error_log('Fonctionnalités joueur indisponibles (SQLSTATE '.$state.').');
+            if (in_array($state, ['42P01', '42703'], true)) {
+                return new JsonResponse(['error' => 'La base de données doit être mise à jour pour ouvrir cet onglet.'], 503, $headers);
+            }
+
             return new JsonResponse(['error' => 'Cette fonction est momentanément indisponible.'], 503, $headers);
         }
     }

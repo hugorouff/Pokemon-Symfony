@@ -47,7 +47,7 @@ Les nouvelles adresses s’inscrivent directement depuis **Créer un compte**. P
 - `RESEND_API_KEY` avec une clé d’envoi Resend.
 - `PASSWORD_RESET_FROM` avec une adresse de votre domaine d’envoi vérifié dans Resend.
 
-Initialisez la table via `php bin/console app:neon:setup` contre la même base Neon, puis redéployez. L’API HTTPS Resend envoie un code utilisable une seule fois pendant 15 minutes. La récupération conserve le compte et ses données. Si l’envoi mail n’est pas configuré, un administrateur peut renouveler le mot de passe d’un compte existant avec `php bin/console app:roms:account --rotate adresse@example.com`.
+Le démarrage de l’image Docker initialise la table sur la base Neon configurée. Hors Docker, lancez `php bin/console app:neon:setup --schema-only`. L’API HTTPS Resend envoie un code utilisable une seule fois pendant 15 minutes. La récupération conserve le compte et ses données. Si l’envoi mail n’est pas configuré, un administrateur peut renouveler le mot de passe d’un compte existant avec `php bin/console app:roms:account --rotate adresse@example.com`.
 
 ## Fonctions du compte
 
@@ -137,7 +137,7 @@ Chaque ouverture enregistre les cinq cartes obtenues dans `booster_openings` lor
 
 ### Image Docker
 
-Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. Avant de déployer cette mise à jour, lancez `php bin/console app:neon:setup` avec la même URL PostgreSQL pour ajouter les tables de collection et des nouvelles fonctionnalités, ainsi que les champs des points de reprise. Les joueurs peuvent ensuite s’inscrire depuis **Créer un compte** à l’accueil. Les comptes existants gardent leurs identifiants. L’image écoute sur le port 80.
+Le `Dockerfile` installe les dépendances PHP à partir de `composer.lock` pendant la construction. `vendor/` reste ignoré par Git. Il active `pdo_pgsql`, vide le cache Symfony pendant la construction et expose uniquement `public/`. Fournissez `DATABASE_URL`, `ROM_POSTGRES=1`, `ROM_USER_ACCOUNTS=1` et un `APP_SECRET` stable au démarrage du conteneur. À chaque démarrage, le conteneur applique les ajouts de schéma PostgreSQL avant de lancer Apache. La commande est idempotente et conserve les données. Le rôle de `DATABASE_URL` doit avoir les droits de création et de modification des tables. Le message « PostgreSQL accessible » confirme la mise à jour dans les logs de démarrage. Pour appliquer le schéma depuis une installation locale connectée à la même base, lancez `php bin/console app:neon:setup --schema-only`. Les joueurs peuvent ensuite s’inscrire depuis **Créer un compte** à l’accueil. Les comptes existants gardent leurs identifiants. L’image écoute sur le port 80.
 
 ## Vérification du catalogue
 

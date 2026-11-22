@@ -12,9 +12,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101118">
     <title>{{ nav[section] }} · Pokémon TCG App</title>
-    <link rel="manifest" href="/manifest.webmanifest?v=dashboard">
-    <link rel="icon" href="/icons/app-192.png?v=dashboard" sizes="192x192">
-    <link rel="apple-touch-icon" href="/icons/app-180.png?v=dashboard">
+    <link rel="manifest" href="/manifest.webmanifest?v=dashboard-icons">
+    <link rel="icon" href="/assets/pwa/app-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/assets/pwa/app-180.png">
     <script type="module" src="/assets/shell.js"></script>
     <link rel="stylesheet" href="/assets/app.css?v=dashboard">
     {% if section == 'emulateur' %}
@@ -33,7 +33,7 @@
 <header class="site-head">
     <div class="shell head-inner">
         {% if signedIn %}
-            <a class="brand" href="{{ path('home') }}"{% if section == 'accueil' %} aria-current="page"{% endif %}><img src="/icons/app-192.png?v=dashboard" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></a>
+            <a class="brand" href="{{ path('home') }}"{% if section == 'accueil' %} aria-current="page"{% endif %}><img src="/assets/pwa/app-192.png" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></a>
             <nav aria-label="Navigation principale">
                 <ul class="menu">
                     {% for group, keys in navGroups %}
@@ -53,7 +53,7 @@
                 </ul>
             </nav>
         {% else %}
-            <span class="brand"><img src="/icons/app-192.png?v=dashboard" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></span>
+            <span class="brand"><img src="/assets/pwa/app-192.png" width="34" height="34" alt=""> <span>Pokémon <b>TCG</b></span></span>
         {% endif %}
         <button id="install-app" class="install-app" type="button" hidden>Installer l’appli</button>
     </div>

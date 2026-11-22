@@ -17,7 +17,13 @@ final class NeonSetup
     public function __invoke(
         SymfonyStyle $io,
         #[Option('Origine HTTPS à autoriser sur le bucket (par exemple https://pokemon.example.com)')] string $origin = '',
+        #[Option('Met à jour uniquement le schéma PostgreSQL')] bool $schemaOnly = false,
     ): int {
+        if ($schemaOnly && $origin !== '') {
+            $io->error('Les options --schema-only et --origin ne sont pas compatibles.');
+
+            return Command::INVALID;
+        }
         if ($origin !== '' && (!preg_match('~^https?://[a-z0-9.-]+(?::[0-9]+)?$~iD', $origin)
             || (!str_starts_with($origin, 'https://') && !in_array(parse_url($origin, PHP_URL_HOST), ['127.0.0.1', 'localhost'], true)))) {
             $io->error('Indiquez l’origine exacte du site, sans chemin ni barre oblique finale.');
@@ -31,6 +37,7 @@ final class NeonSetup
         }
         try {
             $this->database->connection()->exec(<<<'SQL'
+                SELECT pg_advisory_xact_lock(176041, 1);
                 CREATE TABLE IF NOT EXISTS booster_openings (
                     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                     locale varchar(2) NOT NULL,
@@ -108,13 +115,22 @@ final class NeonSetup
                 CREATE UNIQUE INDEX IF NOT EXISTS card_trades_pending_idx ON card_trades (proposer, recipient, give_card, take_card) WHERE status = 'pending';
                 SQL);
             $io->success('PostgreSQL accessible. Tables des ROMs, sauvegardes, comptes, collections et fonctionnalités joueur disponibles.');
-            if ($this->cloud->enabled()) {
+            if (!$schemaOnly && $this->cloud->enabled()) {
                 $io->success(sprintf('Stockage S3 accessible. %d jeu(x) disponible(s).', count($this->cloud->list())));
                 if ($origin !== '') {
                     $this->cloud->allowOrigin($origin);
                     $io->success('Accès du navigateur configuré pour '.$origin);
                 }
             }
+        } catch (\PDOException $exception) {
+            $state = $exception->errorInfo[0] ?? (string) $exception->getCode();
+            $hint = match ($state) {
+                '42501' => 'Le rôle PostgreSQL doit pouvoir créer les tables et modifier celles de l’application.',
+                default => 'Vérifiez la connexion PostgreSQL et les droits du rôle.',
+            };
+            $io->error(sprintf('Mise à jour du schéma PostgreSQL impossible (SQLSTATE %s). %s', $state, $hint));
+
+            return Command::FAILURE;
         } catch (\Throwable $exception) {
             $io->error($exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
                 ? $exception->getMessage()

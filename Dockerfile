@@ -23,3 +23,6 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --optimize --no-s
     && mkdir -p var/cache var/log var/sessions roms \
     && APP_SECRET=docker-build-only php bin/console cache:clear --env=prod --no-warmup \
     && chown -R www-data:www-data var roms
+
+ENTRYPOINT ["/bin/sh", "/var/www/html/docker/start.sh"]
+CMD ["apache2-foreground"]
