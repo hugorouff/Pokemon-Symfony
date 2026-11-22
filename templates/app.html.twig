@@ -18,8 +18,8 @@
     <script type="module" src="/assets/shell.js"></script>
     <link rel="stylesheet" href="/assets/app.css?v=dashboard">
     {% if section == 'emulateur' %}
-        <link rel="stylesheet" href="/assets/nds-player.css?v=dashboard">
-        <script type="module" src="/assets/nds-player.js"></script>
+        <link rel="stylesheet" href="/assets/nds-player.css?v=save-session">
+        <script type="module" src="/assets/nds-player.js?v=load-save"></script>
     {% elseif section in ['objectifs', 'echanges', 'classeur'] %}
         <script type="module" src="/assets/feature-pages.js"></script>
     {% elseif section == 'compte' or (section == 'accueil' and not signedIn) %}

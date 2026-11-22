@@ -16,6 +16,7 @@ let csrfToken = '';
 let accountId;
 let canSave = false;
 let playingRom;
+let playingAccountId;
 let selectedSaveRom;
 let saveBusy = false;
 const saveDialog = $('rom-saves');
@@ -24,6 +25,8 @@ const dateFormat = new Intl.DateTimeFormat('fr-FR', {dateStyle: 'medium', timeSt
 let gameUrl;
 let checkpointUrl;
 let playingCore;
+let failedCheckpoint;
+let gameStarted = false;
 let busy = false;
 const sizeFormat = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 1});
 
@@ -79,9 +82,11 @@ async function upload(url, data, onProgress) {
         xhr.send(data);
     });
     if (response.status !== 201 || !response.data) {
-        throw new Error(response.data?.error || (response.status === 413
+        const error = new Error(response.data?.error || (response.status === 413
             ? 'Le fichier dépasse la limite d’envoi de l’hébergement.'
             : 'Le serveur n’a pas pu enregistrer le fichier.'));
+        error.status = response.status;
+        throw error;
     }
     return response.data;
 }
@@ -213,18 +218,104 @@ function savesUrl(rom) {
 }
 
 async function loadSaves(rom) {
-    const {data} = await readJson(await fetch(savesUrl(rom)));
+    const {data} = await readJson(await fetch(savesUrl(rom), {cache: 'no-store'}));
     if (selectedSaveRom !== rom || !saveDialog.open) return;
     const rows = data.map(save => {
         const labels = node('div', 'rom-meta');
         labels.append(node('strong', '', save.name),
             node('small', '', dateFormat.format(new Date(save.modified * 1000)) + ' · ' + sizeLabel(save.size)));
         const row = node('li', 'panel rom-row');
-        row.append(labels, downloadLink('Télécharger', savesUrl(rom) + '/' + save.id, 'Télécharger ' + save.name));
+        const actions = node('div', 'actions');
+        if (rom.core === 'desmume' && savedGameKind(save)) {
+            const load = button('Charger dans le jeu', () => loadSavedGame(rom, save, load), 'primary');
+            load.setAttribute('aria-label', 'Charger dans le jeu : ' + save.name);
+            actions.append(load);
+        }
+        actions.append(downloadLink('Télécharger', savesUrl(rom) + '/' + save.id, 'Télécharger ' + save.name));
+        row.append(labels, actions);
         return row;
     });
     $('save-list').replaceChildren(...rows);
     if (!rows.length) $('save-list').append(node('li', '', 'Aucune sauvegarde pour ce jeu.'));
+}
+
+function savedGameKind(save) {
+    if (save.core || /\.state\d*$/i.test(save.name)) return 'state';
+    if (/\.(sav|dsv|srm|save)$/i.test(save.name)) return 'battery';
+    return null;
+}
+
+function savedGameCore(save, fallback) {
+    return save.core || /-(desmume2015|desmume)\.state\d*$/i.exec(save.name)?.[1]?.toLowerCase() || fallback;
+}
+
+async function fetchSave(rom, save) {
+    const response = await fetch(savesUrl(rom) + '/' + save.id, {cache: 'no-store'});
+    if (!response.ok) return readJson(response);
+    const bytes = await response.arrayBuffer();
+    if (!bytes.byteLength) throw new Error('Le fichier de sauvegarde est vide.');
+    return bytes;
+}
+
+function importBatterySave(manager, bytes) {
+    const path = manager?.getSaveFilePath?.();
+    if (!path || !manager.FS || !manager.loadSaveFiles) {
+        throw new Error('Attends la fin du démarrage du jeu avant de charger cette sauvegarde.');
+    }
+    // DeSmuME desktop can append metadata after the raw Nintendo DS save.
+    const view = new DataView(bytes);
+    const footer = view.byteLength - 40;
+    if (footer > 0 && new TextDecoder().decode(bytes.slice(-16)) === '|-DESMUME SAVE-|') {
+        const paddedSize = view.getUint32(footer + 4, true);
+        if (paddedSize > 0 && paddedSize <= footer) bytes = bytes.slice(0, paddedSize);
+    }
+    const folders = path.split('/').filter(Boolean).slice(0, -1);
+    let dir = '';
+    for (const folder of folders) {
+        dir += '/' + folder;
+        if (!manager.FS.analyzePath(dir).exists) manager.FS.mkdir(dir);
+    }
+    manager.FS.writeFile(path, new Uint8Array(bytes));
+    manager.loadSaveFiles();
+    manager.restart();
+}
+
+async function loadSavedGame(rom, save, control) {
+    if (saveBusy) return;
+    const core = savedGameCore(save, playingCore || $('ds-core').value);
+    if (playingRom && !window.confirm('Charger cette sauvegarde remplacera la partie en cours. Continuer ?')) return;
+    control.disabled = saveBusy = true;
+    $('save-status').textContent = 'Chargement de la sauvegarde…';
+    try {
+        if (!playingRom) {
+            saveDialog.close();
+            await openRom(rom, {...save, launchCore: core});
+        } else if (playingCore !== core) {
+            const query = new URLSearchParams({jeu: rom.id, sauvegarde: save.id});
+            location.assign('/emulateur?' + query);
+        } else {
+            if (!gameStarted) throw new Error('Attends la fin du démarrage du jeu, puis réessaie.');
+            if ((await accountState(true)).accountId !== playingAccountId) {
+                throw new Error('Reconnecte-toi au compte qui a lancé cette partie, puis réessaie.');
+            }
+            const bytes = await fetchSave(rom, save);
+            const manager = window.EJS_emulator?.gameManager;
+            if (savedGameKind(save) === 'battery') {
+                importBatterySave(manager, bytes);
+                status('Sauvegarde chargée. Choisis « Continuer » dans le jeu.');
+            } else {
+                if (!manager?.loadState) throw new Error('Le moteur ne peut pas charger ce point de reprise.');
+                manager.loadState(new Uint8Array(bytes));
+                status('Point de reprise transmis au moteur du jeu.');
+            }
+            saveDialog.close();
+            gameSurface.focus({preventScroll: true});
+        }
+    } catch (error) {
+        $('save-status').textContent = error.message;
+    } finally {
+        control.disabled = saveBusy = false;
+    }
 }
 
 async function showSaves(rom) {
@@ -249,13 +340,21 @@ saveForm.addEventListener('submit', async event => {
     const payload = new FormData(saveForm);
     const submit = saveForm.querySelector('button');
     submit.disabled = saveBusy = true;
+    $('save-status').textContent = 'Envoi de la sauvegarde…';
     try {
-        await upload(savesUrl(rom), payload, percent => {
+        const session = await accountState(true);
+        if (!session.accountId || session.accountId !== accountId || (playingRom && session.accountId !== playingAccountId)) {
+            throw new Error('Reconnecte-toi au même compte depuis Mon compte, puis réessaie.');
+        }
+        applyAccess(session);
+        const saved = await upload(savesUrl(rom), payload, percent => {
             if (selectedSaveRom === rom) $('save-status').textContent = `Import… ${percent} %`;
         });
         if (selectedSaveRom === rom) {
             saveForm.reset();
-            $('save-status').textContent = 'Nouvelle version enregistrée.';
+            $('save-status').textContent = rom.core === 'desmume' && savedGameKind(saved)
+                ? 'Sauvegarde importée. Clique sur « Charger dans le jeu » pour l’utiliser.'
+                : 'Sauvegarde importée. Elle est disponible au téléchargement.';
             await loadSaves(rom);
         }
     } catch (error) {
@@ -426,6 +525,17 @@ async function resumeGame(rom) {
     }
 }
 
+const checkpointRecovery = $('checkpoint-recovery');
+const checkpointLogin = $('checkpoint-login');
+$('checkpoint-download').addEventListener('click', () => {
+    if (!failedCheckpoint) return;
+    const url = URL.createObjectURL(failedCheckpoint);
+    const link = downloadLink('', url, 'Télécharger le point de reprise');
+    link.download = displayName(playingRom) + '-' + playingCore + '.state';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
 $('player-checkpoint').addEventListener('click', async event => {
     const control = event.currentTarget;
     control.disabled = true;
@@ -437,15 +547,33 @@ $('player-checkpoint').addEventListener('click', async event => {
             throw new Error('Le lecteur n’a pas encore de partie DS à sauvegarder.');
         }
         const file = new Blob([data], {type: 'application/octet-stream'});
+        failedCheckpoint = file;
         if (file.size > 16 * 1024 * 1024) throw new Error('Ce point de reprise dépasse 16 Mio.');
+        const session = await accountState(true);
+        if (!session.accountId || session.accountId !== playingAccountId) {
+            const error = new Error('Reconnecte-toi au compte qui a lancé la partie.');
+            error.status = 401;
+            throw error;
+        }
+        applyAccess(session);
         const form = new FormData();
         form.append('save', file, 'reprise.state');
         form.append('checkpointCore', core);
+        status('Envoi du point de reprise…');
         await upload(savesUrl(playingRom), form, () => {});
+        failedCheckpoint = undefined;
+        checkpointRecovery.hidden = true;
         status('Point de reprise enregistré en ligne.');
-        if (saveDialog.open) await loadSaves(playingRom);
+        if (saveDialog.open) await loadSaves(playingRom).catch(error => {
+            $('save-status').textContent = error.message;
+        });
     } catch (error) {
-        status(error.message, true);
+        const shouldReconnect = error.status === 401 || error.status === 403;
+        checkpointLogin.hidden = !shouldReconnect;
+        checkpointRecovery.hidden = !failedCheckpoint;
+        status(shouldReconnect
+            ? 'La sauvegarde en ligne a été bloquée par la session. Reconnecte-toi au compte qui a lancé la partie dans un autre onglet, puis réessaie ici. Garde le jeu ouvert.'
+            : error.message, true);
     } finally {
         control.disabled = false;
     }
@@ -558,11 +686,15 @@ async function openRom(rom, checkpoint = null) {
     lock(true);
     status('Chargement du jeu…');
     let gameId;
+    let batterySave;
     try {
         if (checkpoint) {
-            const saved = await fetch(savesUrl(rom) + '/' + checkpoint.id, {cache: 'no-store'});
-            if (!saved.ok) throw new Error('Impossible de récupérer le point de reprise.');
-            checkpointUrl = URL.createObjectURL(await saved.blob());
+            const bytes = await fetchSave(rom, checkpoint);
+            if (savedGameKind(checkpoint) === 'battery') {
+                batterySave = bytes;
+            } else {
+                checkpointUrl = URL.createObjectURL(new Blob([bytes], {type: 'application/octet-stream'}));
+            }
         }
         const stored = await readCachedRom(rom);
         const file = /\.zip$/i.test(rom.name) ? await unpackDsZip(stored) : stored;
@@ -597,7 +729,8 @@ async function openRom(rom, checkpoint = null) {
     }
 
     playingRom = rom;
-    playingCore = checkpoint?.core || (rom.core === 'desmume' ? $('ds-core').value : rom.core);
+    playingAccountId = accountId;
+    playingCore = checkpoint?.launchCore || checkpoint?.core || (rom.core === 'desmume' ? $('ds-core').value : rom.core);
     const pathName = rom.name.replace(/\.zip$/i, '.nds');
     const emulatorName = rom.core === 'desmume'
         ? pathName.replace(/(\.[^.]+)$/, '-' + playingCore + (accountId ? '-' + accountId : '') + '$1')
@@ -622,13 +755,25 @@ async function openRom(rom, checkpoint = null) {
         EJS_startOnLoaded: !!checkpoint,
         EJS_startButtonName: 'Démarrer',
         EJS_onGameStart: () => {
-            status('');
+            gameStarted = true;
+            try {
+                if (batterySave) {
+                    const bytes = batterySave;
+                    batterySave = undefined;
+                    importBatterySave(window.EJS_emulator?.gameManager, bytes);
+                    status('Sauvegarde chargée. Choisis « Continuer » dans le jeu.');
+                } else {
+                    status('');
+                }
+            } catch (error) {
+                status(error.message, true);
+            }
             gameSurface.tabIndex = 0;
             gameSurface.focus({preventScroll: true});
             $('player-checkpoint').hidden = !(accountId && rom.core === 'desmume');
             preferencesButton.hidden = !(accountId && rom.core === 'desmume');
         },
-        EJS_ready: () => status(checkpoint ? 'Chargement du point de reprise…' : 'Cliquez sur « Démarrer » dans le lecteur.'),
+        EJS_ready: () => status(checkpoint ? 'Chargement de la sauvegarde…' : 'Cliquez sur « Démarrer » dans le lecteur.'),
     });
 
     const script = document.createElement('script');
@@ -643,6 +788,16 @@ $('change-rom').addEventListener('click', () => {
 window.addEventListener('pagehide', event => {
     if (!event.persisted) for (const url of [gameUrl, checkpointUrl]) if (url) URL.revokeObjectURL(url);
 });
-loadLibrary().catch(error => {
+loadLibrary().then(async () => {
+    const params = new URLSearchParams(location.search);
+    const rom = library.find(item => item.id === params.get('jeu'));
+    const saveId = params.get('sauvegarde');
+    if (rom?.core !== 'desmume' || !/^[a-f0-9]{32}$/.test(saveId || '')) return;
+    const {data} = await readJson(await fetch(savesUrl(rom), {cache: 'no-store'}));
+    const save = data.find(item => item.id === saveId);
+    if (!save || !savedGameKind(save)) throw new Error('Sauvegarde compatible introuvable pour ce jeu.');
+    history.replaceState(null, '', '/emulateur');
+    await openRom(rom, {...save, launchCore: savedGameCore(save, $('ds-core').value)});
+}).catch(error => {
     status(error instanceof TypeError ? 'Impossible de joindre le serveur de la bibliothèque.' : error.message, true);
 });

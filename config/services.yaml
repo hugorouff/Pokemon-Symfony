@@ -35,6 +35,13 @@ services:
 
     App\Postgres: ~
 
+    App\SessionHandlerFactory: ~
+
+    app.session_handler:
+        class: SessionHandlerInterface
+        factory: ['@App\SessionHandlerFactory', 'create']
+        arguments: ['%kernel.project_dir%/var/sessions']
+
     App\PostgresRomLibrary: ~
 
     App\ImportPostgresRoms: ~
@@ -73,6 +80,10 @@ framework:
         cookie_secure: auto
         cookie_httponly: true
         cookie_samesite: strict
+        handler_id: app.session_handler
+        gc_maxlifetime: 86400
+        gc_probability: 1
+        gc_divisor: 100
         save_path: '%kernel.project_dir%/var/sessions'
     rate_limiter:
         rom_login:

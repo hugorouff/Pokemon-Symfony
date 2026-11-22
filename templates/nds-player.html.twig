@@ -24,6 +24,10 @@
             <button class="secondary" id="change-rom" type="button">Mes ROMs</button>
         </div>
     </div>
+    <div id="checkpoint-recovery" class="actions" hidden>
+        <a id="checkpoint-login" class="secondary" href="/compte" target="_blank" rel="noopener" hidden>Se reconnecter dans un autre onglet</a>
+        <button id="checkpoint-download" class="secondary" type="button">Télécharger le point de reprise</button>
+    </div>
     <div class="nds-stage"><div id="game" aria-label="Écran du jeu"></div></div>
     <p id="player-preferences-status" class="status" role="status"></p>
     <p class="nds-hint">Clique dans le jeu pour reprendre le contrôle du clavier. Tu peux enregistrer un point de reprise en ligne. Tu peux aussi importer une sauvegarde de jeu depuis <strong>Sauvegardes</strong>.</p>
@@ -34,8 +38,9 @@
     <p id="save-account" hidden>Pour accéder à tes sauvegardes en ligne, <a href="/compte" target="_blank" rel="noopener">connecte-toi ou crée ton compte</a>. Reviens ensuite dans Mes ROMs.</p>
     <form id="save-import" class="nds-selection">
         <label for="save-file">Fichier de sauvegarde</label>
-        <input id="save-file" name="save" type="file" required>
+        <input id="save-file" name="save" type="file" aria-describedby="save-import-help" required>
         <button class="primary" type="submit">Importer la sauvegarde</button>
+        <small id="save-import-help">Pour jouer sur Nintendo DS, importe un fichier .sav, .dsv, .srm ou .state, puis choisis « Charger dans le jeu ».</small>
     </form>
     <p id="save-status" class="status" role="status"></p>
     <ul id="save-list" class="rom-list"></ul>

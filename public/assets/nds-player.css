@@ -28,3 +28,5 @@
 .rom-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .rom-tabs [aria-selected="true"]{background:var(--red);color:#17090b}
 .rom-tabs button{max-width:100%;overflow-wrap:anywhere}
+
+#checkpoint-recovery{margin-bottom:12px}

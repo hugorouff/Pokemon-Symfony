@@ -90,6 +90,13 @@ final class NeonSetup
                     PRIMARY KEY (owner_id, id)
                 );
                 ALTER TABLE rom_saves ADD COLUMN IF NOT EXISTS checkpoint_core varchar(20);
+                CREATE TABLE IF NOT EXISTS app_sessions (
+                    sess_id varchar(128) PRIMARY KEY,
+                    sess_data bytea NOT NULL,
+                    sess_lifetime integer NOT NULL,
+                    sess_time integer NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS app_sessions_expiry_idx ON app_sessions (sess_lifetime);
                 CREATE TABLE IF NOT EXISTS player_features (
                     owner_id varchar(32) NOT NULL REFERENCES rom_accounts(id) ON DELETE CASCADE,
                     kind varchar(72) NOT NULL,
