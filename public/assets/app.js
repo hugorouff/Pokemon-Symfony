@@ -1,7 +1,7 @@
 import {accountState} from './account-session.js';
 import {changeCard, drawBooster, getCollection, importCollection, importLocalCollection, remainingBoosters, storeCards} from './collection.js';
 import {api, button, clean, collator, fmt, node} from './ui.js';
-import {dexFavorites, favoriteControl, pokemonViewer, statsPanel} from './pokedex.js';
+import {dexFavorites, favoriteControl, pokemonViewer, statsPanel} from './pokedex.js?v=fiche';
 
 const section = document.body.dataset.section;
 const results = document.querySelector('#results');
@@ -91,12 +91,16 @@ async function showPokemon(entry) {
     const cries = node('div');
     cries.append(audioControls(entry));
     copy.append(node('small', '', 'N° ' + entry.number), node('h2', '', pokemonName(entry)), cries, extra);
-    copy.append(favoriteControl(entry));
+    const description = node('section', 'dex-description');
+    const text = node('p', '', entry.description || 'Description momentanément indisponible.');
+    description.append(node('h3', '', 'Description'), text);
+    copy.append(description, favoriteControl(entry));
     layout.append(pokemonViewer(entry), copy);
     const request = openDetail(layout);
     try {
         const data = await api('/api/pokemon/' + entry.id, {}, {signal: request.signal});
         if (data.types?.length) extra.textContent = metadata(data);
+        if (data.description) text.textContent = data.description;
         if (data.cry !== entry.cry || data.legacy !== entry.legacy) cries.replaceChildren(audioControls(data));
         if (data.forms?.length) {
             const label = node('label', 'dex-forms', 'Comparer les formes');

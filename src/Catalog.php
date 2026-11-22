@@ -403,7 +403,15 @@ final class Catalog
             file_get_contents($this->dataDirectory.'/dex-models.json'), true, 512, JSON_THROW_ON_ERROR
         );
 
+        $description = $this->index('dex-descriptions')[$species] ?? '';
+        if ($this->isMega($name)) {
+            $description = 'Cette Méga-Évolution transforme temporairement '.$french.'. '.$description;
+        } elseif (str_ends_with($name, '-gmax')) {
+            $description = 'Cette forme Gigamax change l’apparence de '.$french.' et augmente sa taille. '.$description;
+        }
+
         return [
+            'description' => trim($description),
             'label' => $this->dexName($name, $french, (bool) $default),
             'kind' => $this->isMega($name) ? 'mega' : (str_ends_with($name, '-gmax') ? 'gmax' : 'normal'),
             'models' => $models[$id] ?? null,

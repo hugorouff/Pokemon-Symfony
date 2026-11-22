@@ -42,3 +42,10 @@ body[data-section=pokedex] {--dex-cyan:#6ae9ee;--dex-surface:#111e2a;--dex-borde
 .lab-options {display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px}
 .lab-options label {display:inline-flex;align-items:center;gap:7px}
 .lab-options input[type=range] {width:clamp(72px,23vw,145px);accent-color:var(--dex-cyan)}
+
+.dex-view-modes {display:flex;flex-wrap:wrap;gap:6px}
+.dex-view-modes button {flex:1 1 auto;padding:6px 8px;font-size:.81rem}
+.dex-view-modes [aria-pressed=true] {border-color:var(--dex-cyan);color:var(--dex-cyan);background:var(--dex-surface)}
+.dex-description {padding:12px;border:1px solid var(--dex-border);border-radius:10px;background:var(--dex-surface)}
+.dex-description h3 {margin:0 0 5px;font-size:.94rem}
+.dex-description p {margin:0;line-height:1.5}
