@@ -28,12 +28,17 @@ final class Controller
 
         $signedIn = $owner !== null && $owner !== '';
         $accountEmail = $signedIn && $section === 'compte' ? ($accounts->byId($owner)['email'] ?? null) : null;
+        $headers = ['Cache-Control' => 'private, no-store'];
+        if ($section === 'emulateur') {
+            $headers['Cross-Origin-Opener-Policy'] = 'same-origin';
+            $headers['Cross-Origin-Embedder-Policy'] = 'require-corp';
+        }
 
         return new Response($this->twig->render('app.html.twig', [
             'section' => $section,
             'signedIn' => $signedIn,
             'accountEmail' => $accountEmail,
-        ]), 200, ['Cache-Control' => 'private, no-store']);
+        ]), 200, $headers);
     }
 
     #[Route('/noir-2', methods: ['GET'])]

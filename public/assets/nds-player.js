@@ -779,7 +779,7 @@ async function openRom(rom, checkpoint = null) {
         EJS_gameName: emulatorName,
         EJS_loadStateURL: checkpointUrl,
         EJS_gameID: gameId,
-        EJS_threads: false,
+        EJS_threads: window.crossOriginIsolated && typeof window.SharedArrayBuffer === 'function',
         EJS_startOnLoaded: !!checkpoint,
         EJS_startButtonName: 'Démarrer',
         EJS_onGameStart: () => {
